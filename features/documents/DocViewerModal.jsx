@@ -98,7 +98,8 @@ export function DocViewerModal({ doc, db, onClose, onEdit }) {
   const [status,   setStatus]   = useState('idle')   // idle | loading | done | error
   const [freshUrl, setFreshUrl] = useState(null)
 
-  const hasFile = !!doc?.fileUrl
+  // S-02: hasFile is true if either the new file_path or legacy file_url is populated
+  const hasFile = !!(doc?.filePath || doc?.fileUrl)
 
   useEffect(() => {
     if (!doc?.id || !hasFile) return
@@ -206,7 +207,7 @@ export function DocViewerModal({ doc, db, onClose, onEdit }) {
             <div style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 16 }}>
               Could not generate a secure link for this file.
             </div>
-            {doc.fileUrl && (
+            {(doc.fileUrl) && (
               <a
                 href={doc.fileUrl}
                 target="_blank"

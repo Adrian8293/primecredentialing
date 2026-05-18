@@ -114,7 +114,8 @@ export function Documents({ db, search, setSearch, fType, setFType, fStatus, set
   const expired  = db.documents.filter(d => { const x = daysUntil(d.exp); return x !== null && x < 0 }).length
   const critical = db.documents.filter(d => { const x = daysUntil(d.exp); return x !== null && x >= 0 && x <= 30 }).length
   const warning  = db.documents.filter(d => { const x = daysUntil(d.exp); return x !== null && x > 30 && x <= 90 }).length
-  const withFile = db.documents.filter(d => d.fileUrl).length
+  // S-02: count documents with either file_path (new) or file_url (legacy)
+  const withFile = db.documents.filter(d => d.filePath || d.fileUrl).length
 
   return (
     <div className="page">
@@ -228,7 +229,8 @@ export function Documents({ db, search, setSearch, fType, setFType, fStatus, set
                       </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      {d.fileUrl ? (
+                      {/* S-02: check filePath (new) or fileUrl (legacy) */}
+                      {(d.filePath || d.fileUrl) ? (
                         <button
                           onClick={e => { e.stopPropagation(); setViewingDoc(d) }}
                           title={d.fileName || 'View file'}

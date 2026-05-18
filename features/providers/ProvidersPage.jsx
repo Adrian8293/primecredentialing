@@ -31,6 +31,10 @@ export function ProvidersPage({
   const [tableTab, setTableTab]     = useState('all')
   const [drawerOpen, setDrawerOpen] = useState(false)
 
+  // A-01/A-02: providersMeta carries { truncated, total } from fetchProviders().
+  // Destructure with safe defaults so this works whether or not the field is present.
+  const { truncated = false, total = 0 } = db.providersMeta || {}
+
   const TABLE_TABS = [
     { id: 'all',        label: 'All Providers' },
     { id: 'onboarding', label: 'Onboarding' },
@@ -108,6 +112,31 @@ export function ProvidersPage({
           </button>
         </div>
       </div>
+
+      {/* ── TRUNCATION BANNER — A-01/A-02 ────────────────────────────────────
+           Shown when the DB has more than 500 providers. Non-dismissible because
+           hidden providers means missed credential alerts — staff must know.
+           This is a Phase 1 stopgap until server-side pagination is implemented. */}
+      {truncated && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 16px', marginBottom: 12,
+          background: 'rgba(239,68,68,.06)',
+          border: '1.5px solid rgba(239,68,68,.25)',
+          borderRadius: 'var(--r-lg)',
+          fontSize: 12.5, color: 'var(--danger)', fontWeight: 500, lineHeight: 1.5,
+        }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>
+            <strong>Showing 500 of {total.toLocaleString()} providers.</strong>{' '}
+            {total - 500} providers are hidden — their credential expiry alerts may not appear.
+            Contact your administrator to enable server-side pagination.
+          </span>
+        </div>
+      )}
 
       {/* ── TABLE VIEW ── */}
       {view === 'table' && (

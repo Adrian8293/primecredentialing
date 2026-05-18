@@ -21,10 +21,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Enter an NPI number, a name, or an organization name.' })
   }
 
+  // P-03 FIX: Sanitize inputs before forwarding to NPPES.
+  // Raw query params appended directly caused NPPES to return 422 errors on malformed
+  // NPI numbers (letters, special chars) instead of a clear client-side error.
+  if (number) {
+    const cleanNpi = number.replace(/\D/g, '')
+    if (cleanNpi.length !== 10) {
+      return res.status(400).json({ error: 'NPI number must be exactly 10 digits.' })
+    }
+  }
+
   try {
     const params = new URLSearchParams({ version: '2.1', limit })
     if (number) {
-      params.append('number', number)
+      params.append('number', number.replace(/\D/g, ''))  // P-03: use digits-only NPI
     } else if (npi_type === 'NPI-2') {
       if (organization_name) params.append('organization_name', organization_name + '*')
       params.append('enumeration_type', 'NPI-2')

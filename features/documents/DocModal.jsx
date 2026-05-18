@@ -79,11 +79,14 @@ export function DocModal({ db, docForm, setDocForm, editingId, handleSaveDocumen
   }
 
   async function handleRemoveExistingFile() {
-    if (!editingId.doc || !f('fileUrl')) return
+    // S-02: guard checks filePath (new records) OR fileUrl (legacy records)
+    if (!editingId.doc || (!f('filePath') && !f('fileUrl'))) return
     setUploading(true)
     try {
-      await deleteDocumentFile(editingId.doc, f('fileUrl'))
+      // S-02: legacy records have fileUrl; new records have filePath
+      await deleteDocumentFile(editingId.doc, f('filePath') || f('fileUrl'))
       set('fileUrl', '')
+      set('filePath', '')
       set('fileName', '')
       toast?.('File removed.', 'success')
     } catch (err) {
@@ -104,8 +107,9 @@ export function DocModal({ db, docForm, setDocForm, editingId, handleSaveDocumen
     if (saved && stagedFile) {
       setUploading(true)
       try {
-        const { fileUrl, fileName } = await uploadDocumentFile(saved.id, saved.provId, stagedFile)
-        setDocForm(prev => ({ ...prev, fileUrl, fileName }))
+        // S-02: upload now returns filePath (storage path) instead of a signed URL
+        const { filePath, fileName } = await uploadDocumentFile(saved.id, saved.provId, stagedFile)
+        setDocForm(prev => ({ ...prev, filePath, fileName }))
         setStagedFile(null)
         toast?.('File attached successfully.', 'success')
       } catch (err) {
@@ -120,7 +124,9 @@ export function DocModal({ db, docForm, setDocForm, editingId, handleSaveDocumen
   }
 
   const isBusy = saving || uploading
-  const existingFile = f('fileUrl')
+  // S-02: existingFile is truthy if either file_path (new uploads) or file_url (legacy) is set.
+  // new uploads return filePath from the API; legacy records have fileUrl from the old signed URL.
+  const existingFile = f('filePath') || f('fileUrl')
 
   return (
     <Modal
@@ -199,7 +205,9 @@ export function DocModal({ db, docForm, setDocForm, editingId, handleSaveDocumen
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {f('fileName') || 'Attached file'}
                 </div>
-                <a href={existingFile} target="_blank" rel="noopener noreferrer"
+                {/* S-02: For new-style records existingFile is a storage path, not a URL.
+                    Route through get-document-url which handles both path and legacy URL formats. */}
+                <a href={`/api/get-document-url?documentId=${editingId.doc}`} target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 11, color: 'var(--pr)', fontWeight: 500 }}>
                   View file ↗
                 </a>

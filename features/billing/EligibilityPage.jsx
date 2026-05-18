@@ -3,6 +3,7 @@ import { daysUntil, fmtDate, pName, pNameShort, payName } from '../../lib/helper
 import { Badge } from '../../components/ui/Badge.jsx'
 import { Modal } from '../../components/ui/Modal.jsx'
 import { fmtMoney } from "../../constants/rcm.js"
+import { upsertEligibilityCheck } from '../../lib/db.js'
 
 export function EligibilityPage({ db, toast, requestConfirm }) {
   const { providers, payers, eligibilityChecks: initChecks = [] } = db
@@ -21,6 +22,12 @@ export function EligibilityPage({ db, toast, requestConfirm }) {
 
   async function handleVerify() {
     const provider = providers.find(p => p.id === form.prov_id)
+    // P-01 FIX: API now requires lastName — extract from patient_name ("Last, First" format).
+    // If the field is blank or not in that format, fall back to "*" (Availity wildcard)
+    // so the request still goes through rather than silently failing with a 400.
+    const lastName = form.patient_name
+      ? (form.patient_name.split(',')[0] || '').trim() || '*'
+      : '*'
     if (!form.member_id || !form.payer_id || !form.dob || !provider?.npi) {
       toast('Member ID, DOB, payer, and a provider NPI are required to verify.','error')
       return
@@ -36,6 +43,7 @@ export function EligibilityPage({ db, toast, requestConfirm }) {
           dob: form.dob,
           npi: provider.npi,
           dos: form.appt_date,
+          lastName,
         })
       })
       const data = await res.json()

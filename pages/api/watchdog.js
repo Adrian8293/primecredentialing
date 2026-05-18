@@ -14,7 +14,8 @@
  *  SCHEDULING — two patterns (choose one):
  *    A) Vercel Cron (recommended for Next.js on Vercel)
  *       Add to vercel.json:
- *         { "crons": [{ "path": "/api/watchdog", "schedule": "0 7 * * *" }] }
+ *         { "crons": [{ "path": "/api/watchdog", "schedule": "0 14 * * *" }] }
+ *       0 14 * * * = 2:00 AM UTC = 6:00 AM Pacific Time (Oregon) — runs before staff arrive.
  *       Secure it with CRON_SECRET (see bottom of this file).
  *
  *    B) External cron (Railway, Render, cron-job.org)
@@ -468,14 +469,14 @@ export function useWatchdog() {
 /*
  ──────────────────────────────────────────────────────────────────────────────
   VERCEL CRON CONFIG (vercel.json)
-  Schedule daily at 07:00 UTC (midnight Oregon time approximately)
+  Schedule daily at 14:00 UTC (06:00 AM Pacific Time / Oregon)
  ──────────────────────────────────────────────────────────────────────────────
 
 {
   "crons": [
     {
       "path": "/api/watchdog",
-      "schedule": "0 7 * * *"
+      "schedule": "0 14 * * *"
     }
   ]
 }
