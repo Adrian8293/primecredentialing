@@ -143,11 +143,23 @@ export function DocModal({ db, docForm, setDocForm, editingId, handleSaveDocumen
     >
       <div className="form-grid">
         <div className="fg">
-          <label>Provider *</label>
-          <select value={f('provId')} onChange={e => set('provId', e.target.value)}>
+          <label style={{ color: docForm._touched?.provId && !f('provId') ? 'var(--danger)' : undefined }}>
+            Provider <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
+          <select
+            value={f('provId')}
+            onChange={e => set('provId', e.target.value)}
+            style={{ border: docForm._touched?.provId && !f('provId') ? '1.5px solid var(--danger)' : undefined, borderRadius: 'var(--r)' }}
+          >
             <option value="">— Select Provider —</option>
             {db.providers.map(p => <option key={p.id} value={p.id}>{p.fname} {p.lname}</option>)}
           </select>
+          {docForm._touched?.provId && !f('provId') && (
+            <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Provider is required
+            </div>
+          )}
         </div>
         <div className="fg">
           <label>Document Type *</label>
@@ -174,8 +186,21 @@ export function DocModal({ db, docForm, setDocForm, editingId, handleSaveDocumen
         <div className="fg"><label>Issue Date</label><input type="date" value={f('issue')} onChange={e => set('issue', e.target.value)} /></div>
         {!NO_EXPIRY_TYPES.has(f('type')) && (
           <div className="fg">
-            <label>Expiration Date *</label>
-            <input type="date" value={f('exp')} onChange={e => set('exp', e.target.value)} />
+            <label style={{ color: docForm._touched?.exp && !f('exp') ? 'var(--danger)' : undefined }}>
+              Expiration Date <span style={{ color: 'var(--danger)' }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={f('exp')}
+              onChange={e => set('exp', e.target.value)}
+              style={{ border: docForm._touched?.exp && !f('exp') ? '1.5px solid var(--danger)' : undefined, borderRadius: 'var(--r)' }}
+            />
+            {docForm._touched?.exp && !f('exp') && (
+              <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Expiration date is required for this document type
+              </div>
+            )}
           </div>
         )}
         {NO_EXPIRY_TYPES.has(f('type')) && (

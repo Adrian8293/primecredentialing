@@ -6,8 +6,17 @@ export function PayerModal({ payerForm, setPayerForm, editingId, handleSavePayer
   const [step, setStep] = useState(editingId.payer ? 2 : 1)
   const [pickerSearch, setPickerSearch] = useState('')
   const [selectedCatalog, setSelectedCatalog] = useState(null)
+  const [touched, setTouched] = useState({ name: false })
   const f = k => payerForm[k] ?? ''
   const set = (k, v) => setPayerForm(prev => ({ ...prev, [k]: v }))
+
+  const nameInvalid = touched.name && !f('name').trim()
+
+  function handleSaveWithValidation() {
+    setTouched({ name: true })
+    if (!f('name').trim()) return
+    handleSavePayer()
+  }
 
   function pickPayer(catalog) {
     setSelectedCatalog(catalog)
@@ -45,7 +54,7 @@ export function PayerModal({ payerForm, setPayerForm, editingId, handleSavePayer
           : <>
               {!editingId.payer && <button className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>}
               <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSavePayer} disabled={saving}>{saving ? 'Saving…' : 'Save Payer'}</button>
+              <button className="btn btn-primary" onClick={handleSaveWithValidation} disabled={saving}>{saving ? 'Saving…' : 'Save Payer'}</button>
             </>
       }>
 
@@ -109,8 +118,24 @@ export function PayerModal({ payerForm, setPayerForm, editingId, handleSavePayer
           )}
 
           <div className="form-grid">
-            <div className="fg full"><label>Payer Name *</label>
-              <input type="text" value={f('name')} onChange={e => set('name', e.target.value)} placeholder="Payer name" />
+            <div className="fg full">
+              <label style={{ color: nameInvalid ? 'var(--danger)' : undefined }}>
+                Payer Name <span style={{ color: 'var(--danger)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={f('name')}
+                onChange={e => { set('name', e.target.value); setTouched(t => ({ ...t, name: true })) }}
+                onBlur={() => setTouched(t => ({ ...t, name: true }))}
+                placeholder="Payer name"
+                style={{ border: nameInvalid ? '1.5px solid var(--danger)' : undefined, borderRadius: 'var(--r)' }}
+              />
+              {nameInvalid && (
+                <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Payer name is required
+                </div>
+              )}
             </div>
             <div className="fg"><label>Payer ID / EDI ID</label>
               <input type="text" value={f('payerId')} onChange={e => set('payerId', e.target.value)} placeholder="60054" />

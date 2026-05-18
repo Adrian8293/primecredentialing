@@ -3,6 +3,7 @@ import { daysUntil, fmtDate, pName, pNameShort, payName } from '../../lib/helper
 import { Badge } from '../../components/ui/Badge.jsx'
 import { Modal } from '../../components/ui/Modal.jsx'
 import { AGING_BUCKETS, getAgingBucket, fmtMoney } from "../../constants/rcm.js"
+import { upsertClaim, deleteClaim } from '../../lib/db.js'
 
 export function ClaimsPage({ db, toast, requestConfirm }) {
   const { providers, payers, claims: initClaims = [] } = db
@@ -10,6 +11,22 @@ export function ClaimsPage({ db, toast, requestConfirm }) {
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [formTouched, setFormTouched] = useState(false)
+
+  function handleSaveWithValidation() {
+    setFormTouched(true)
+    const obj = { ...form,
+      cpt_codes: form.cpt_codes_str ? form.cpt_codes_str.split(',').map(s=>s.trim()).filter(Boolean) : [],
+      diagnosis_codes: form.diag_codes_str ? form.diag_codes_str.split(',').map(s=>s.trim()).filter(Boolean) : [],
+    }
+    if (!form.patient_name?.trim() || !form.dos) {
+      return
+    }
+    delete obj.cpt_codes_str; delete obj.diag_codes_str
+    handleSaveCore(obj)
+  }
+
+  async function handleSaveCore(obj) {
   const [search, setSearch] = useState('')
   const [fStatus, setFStatus] = useState('')
   const [fProv, setFProv] = useState('')
@@ -18,17 +35,13 @@ export function ClaimsPage({ db, toast, requestConfirm }) {
   useEffect(() => { setClaims(db.claims || []) }, [db.claims])
 
   function openAdd() {
+    setFormTouched(false)
     setForm({ status:'Submitted', submitted_date: new Date().toISOString().split('T')[0] })
     setModal(true)
   }
-  function openEdit(c) { setForm({...c, cpt_codes_str: (c.cpt_codes||[]).join(', '), diag_codes_str: (c.diagnosis_codes||[]).join(', ')}); setModal(true) }
+  function openEdit(c) {
+    setFormTouched(false) setForm({...c, cpt_codes_str: (c.cpt_codes||[]).join(', '), diag_codes_str: (c.diagnosis_codes||[]).join(', ')}); setModal(true) }
 
-  async function handleSave() {
-    const obj = { ...form,
-      cpt_codes: form.cpt_codes_str ? form.cpt_codes_str.split(',').map(s=>s.trim()).filter(Boolean) : [],
-      diagnosis_codes: form.diag_codes_str ? form.diag_codes_str.split(',').map(s=>s.trim()).filter(Boolean) : [],
-    }
-    delete obj.cpt_codes_str; delete obj.diag_codes_str
     setSaving(true)
     try {
       const saved = await upsertClaim(obj)
@@ -200,9 +213,9 @@ export function ClaimsPage({ db, toast, requestConfirm }) {
                     {['Submitted','Pending','Paid','Denied','Partial','Appeal'].map(s=><option key={s}>{s}</option>)}
                   </select>
                 </div>
-                <div className="fg full"><label>Patient Name *</label><input value={form.patient_name||''} onChange={e=>setForm(f=>({...f,patient_name:e.target.value}))} /></div>
+                <div className="fg full"><label style={{ color: formTouched && !form.patient_name?.trim() ? 'var(--danger)' : undefined }}>Patient Name <span style={{ color: 'var(--danger)' }}>*</span></label><input value={form.patient_name||''} style={{ border: formTouched && !form.patient_name?.trim() ? '1.5px solid var(--danger)' : undefined, borderRadius: 'var(--r)' }} onChange={e=>setForm(f=>({...f,patient_name:e.target.value}))} /></div>
                 <div className="fg"><label>Date of Birth</label><input type="date" value={form.dob||''} onChange={e=>setForm(f=>({...f,dob:e.target.value}))} /></div>
-                <div className="fg"><label>Date of Service *</label><input type="date" value={form.dos||''} onChange={e=>setForm(f=>({...f,dos:e.target.value}))} /></div>
+                <div className="fg"><label style={{ color: formTouched && !form.dos ? 'var(--danger)' : undefined }}>Date of Service <span style={{ color: 'var(--danger)' }}>*</span></label><input type="date" value={form.dos||''} style={{ border: formTouched && !form.dos ? '1.5px solid var(--danger)' : undefined, borderRadius: 'var(--r)' }} onChange={e=>setForm(f=>({...f,dos:e.target.value}))} /></div>
                 <div className="fg"><label>Provider</label>
                   <select value={form.prov_id||''} onChange={e=>setForm(f=>({...f,prov_id:e.target.value}))}>
                     <option value="">— Select —</option>

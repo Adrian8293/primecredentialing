@@ -3,6 +3,7 @@ import { daysUntil, fmtDate, pName, payName } from '../../lib/helpers.js'
 import { Badge } from '../../components/ui/Badge.jsx'
 import { Modal } from '../../components/ui/Modal.jsx'
 import { DENIAL_CODES } from '../../constants/rcm.js'
+import { upsertDenial, deleteDenial } from '../../lib/db.js'
 
 export function DenialLog({ db, toast, requestConfirm }) {
   const { providers, payers, denials: initDenials = [], claims = [] } = db
@@ -10,14 +11,17 @@ export function DenialLog({ db, toast, requestConfirm }) {
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [formTouched, setFormTouched] = useState(false)
   const [search, setSearch] = useState('')
   const [fAppeal, setFAppeal] = useState('')
   const [fCat, setFCat] = useState('')
 
   useEffect(() => { setDenials(db.denials || []) }, [db.denials])
 
-  function openAdd() { setForm({ appeal_status:'Not Started', denial_date: new Date().toISOString().split('T')[0] }); setModal(true) }
-  function openEdit(d) { setForm({...d}); setModal(true) }
+  function openAdd() {
+    setFormTouched(false) setForm({ appeal_status:'Not Started', denial_date: new Date().toISOString().split('T')[0] }); setModal(true) }
+  function openEdit(d) {
+    setFormTouched(false) setForm({...d}); setModal(true) }
 
   // Auto-calc appeal deadline (90 days from denial) when denial date changes
   function handleDenialDateChange(val) {
@@ -32,6 +36,8 @@ export function DenialLog({ db, toast, requestConfirm }) {
   }
 
   async function handleSave() {
+    setFormTouched(true)
+    if (!form.denial_date) return
     setSaving(true)
     try {
       const saved = await upsertDenial(form)
@@ -185,7 +191,7 @@ export function DenialLog({ db, toast, requestConfirm }) {
                     {claims.map(c=><option key={c.id} value={c.id}>{c.patient_name} — {c.dos?fmtDate(c.dos):''} (#{c.claim_num||'no #'})</option>)}
                   </select>
                 </div>
-                <div className="fg"><label>Denial Date *</label><input type="date" value={form.denial_date||''} onChange={e=>handleDenialDateChange(e.target.value)} /></div>
+                <div className="fg"><label style={{ color: formTouched && !form.denial_date ? 'var(--danger)' : undefined }}>Denial Date <span style={{ color: 'var(--danger)' }}>*</span></label><input type="date" value={form.denial_date||''} onChange={e=>handleDenialDateChange(e.target.value)} style={{ border: formTouched && !form.denial_date ? '1.5px solid var(--danger)' : undefined, borderRadius: 'var(--r)' }} /></div>
                 <div className="fg"><label>Reason Code</label>
                   <select value={form.reason_code||''} onChange={e=>handleCodeSelect(e.target.value)}>
                     <option value="">— Select code —</option>
