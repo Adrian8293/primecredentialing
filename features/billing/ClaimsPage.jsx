@@ -40,7 +40,8 @@ export function ClaimsPage({ db, toast, requestConfirm }) {
     setModal(true)
   }
   function openEdit(c) {
-    setFormTouched(false) setForm({...c, cpt_codes_str: (c.cpt_codes||[]).join(', '), diag_codes_str: (c.diagnosis_codes||[]).join(', ')}); setModal(true) }
+    setFormTouched(false)
+    setForm({...c, cpt_codes_str: (c.cpt_codes||[]).join(', '), diag_codes_str: (c.diagnosis_codes||[]).join(', ')}); setModal(true) }
 
     setSaving(true)
     try {

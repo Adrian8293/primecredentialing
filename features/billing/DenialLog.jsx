@@ -19,9 +19,11 @@ export function DenialLog({ db, toast, requestConfirm }) {
   useEffect(() => { setDenials(db.denials || []) }, [db.denials])
 
   function openAdd() {
-    setFormTouched(false) setForm({ appeal_status:'Not Started', denial_date: new Date().toISOString().split('T')[0] }); setModal(true) }
+    setFormTouched(false)
+    setForm({ appeal_status:'Not Started', denial_date: new Date().toISOString().split('T')[0] }); setModal(true) }
   function openEdit(d) {
-    setFormTouched(false) setForm({...d}); setModal(true) }
+    setFormTouched(false)
+    setForm({...d}); setModal(true) }
 
   // Auto-calc appeal deadline (90 days from denial) when denial date changes
   function handleDenialDateChange(val) {
