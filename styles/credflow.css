@@ -1,157 +1,163 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Lacentra — Design System v3.0
-   Matches: lacentra_design.png reference
-   Theme: Light, clean, enterprise-grade
-   Font: Inter (from Google Fonts)
-   Primary (LAC Blue): #1565C0
-   Accent (Centre Green): #5CB85C
-   Green:  #10B981
-   Dark:   #0D1B3D (navy, sidebar text/logo)
+   LACentra — Design System v4.0
+   Theme: High-Velocity Revenue Intelligence (DESIGN.md)
+   Font:  Geist (Google Fonts)
+   Primary: Electric Indigo #4F46E5
+   Surface: Clean off-white #F7F9FB
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+/* Font loaded in globals.css */
 
 /* ─── DESIGN TOKENS ──────────────────────────────────────────────────────── */
 :root {
-  /* Brand */
-  --pr:         #1565C0;
-  --pr-d:       #1044A0;
-  --pr-l:       #E3F2FD;
-  --pr-ll:      #F0F8FF;
-  --sky:        #5CB85C;
-  --sky-l:      #E8F5E9;
-  --navy:       #0D1B3D;
+  /* ── Brand / Primary ─────────────────────────────────────── */
+  --pr:         #4F46E5;
+  --pr-d:       #3525CD;
+  --pr-l:       #E2DFFF;
+  --pr-ll:      rgba(79,70,229,.06);
+  --pr-lll:     rgba(79,70,229,.03);
+  --pr-shadow:  0 10px 30px rgba(79,70,229,.12);
 
-  /* Background system — light theme */
-  --bg:         #F1F5F9;
-  --bg-2:       #E8EDF5;
+  /* ── Secondary / Tertiary ───────────────────────────────── */
+  --secondary:  #505F76;
+  --tertiary:   #004D70;
+  --sky:        #006693;
+  --sky-l:      rgba(0,102,147,.10);
+
+  /* ── Background system ──────────────────────────────────── */
+  --bg:         #F7F9FB;
+  --bg-2:       #F2F4F6;
   --card:       #FFFFFF;
-  --elevated:   #F8FAFC;
-  --raised:     #F1F5F9;
+  --elevated:   #F7F9FB;
+  --raised:     #ECEEF0;
 
-  /* Sidebar — stays dark navy per design */
-  --sb-bg:           #0D1B3D;
-  --sb-bg-2:         #132040;
-  --sb-text:         rgba(255,255,255,.45);
-  --sb-text-h:       rgba(255,255,255,.80);
-  --sb-active-bg:    rgba(21,101,192,.22);
-  --sb-active-text:  #ffffff;
-  --sb-border:       rgba(255,255,255,.07);
-  --sb-hover:        rgba(255,255,255,.06);
-  --sb-group-label:  rgba(255,255,255,.22);
+  /* ── Sidebar — light per DESIGN.md ─────────────────────── */
+  --sb-bg:           #FFFFFF;
+  --sb-bg-2:         #F7F9FB;
+  --sb-text:         #777587;
+  --sb-text-h:       #191C1E;
+  --sb-active-bg:    rgba(79,70,229,.08);
+  --sb-active-text:  #3525CD;
+  --sb-border:       #E6E8EA;
+  --sb-hover:        #F2F4F6;
+  --sb-group-label:  #A0A0B0;
   --sidebar-w:       220px;
 
-  /* Topbar */
-  --topbar-h:   56px;
+  /* ── Topbar ─────────────────────────────────────────────── */
+  --topbar-h:   52px;
   --topbar-bg:  #FFFFFF;
 
-  /* Borders */
-  --border:       rgba(0,0,0,.07);
-  --border-mid:   rgba(0,0,0,.11);
-  --border-hi:    rgba(0,0,0,.16);
+  /* ── Borders ────────────────────────────────────────────── */
+  --border:       #E6E8EA;
+  --border-mid:   #D8DADC;
+  --border-hi:    #C7C4D8;
   --border-l:     rgba(0,0,0,.04);
 
-  /* Text */
-  --text-1:  #0D1B3D;
-  --text-2:  #374151;
-  --text-3:  #6B7280;
-  --text-4:  #9CA3AF;
-  --text-5:  #D1D5DB;
+  /* ── Text ───────────────────────────────────────────────── */
+  --text-1:  #191C1E;
+  --text-2:  #464555;
+  --text-3:  #777587;
+  --text-4:  #A0A0B0;
+  --text-5:  #D8DADC;
 
-  /* Legacy aliases (keep for compatibility) */
-  --ink:    #0D1B3D;
-  --ink-2:  #1E293B;
-  --ink-3:  #4B5563;
-  --ink-4:  #9CA3AF;
-  --ink-5:  #D1D5DB;
+  /* Legacy aliases */
+  --ink:    #191C1E;
+  --ink-2:  #464555;
+  --ink-3:  #777587;
+  --ink-4:  #A0A0B0;
+  --ink-5:  #D8DADC;
 
-  /* Surface aliases — used by provider/payer/eligibility components */
-  --surface:    #F8FAFC;
-  --surface-2:  #F1F5F9;
-  --border-2:   rgba(0,0,0,.09);
-  --line:       rgba(0,0,0,.07);
+  /* Surface aliases */
+  --surface:    #F7F9FB;
+  --surface-2:  #F2F4F6;
+  --border-2:   #E0E3E5;
+  --line:       #E6E8EA;
 
-  /* Sidebar legacy aliases */
-  --navy-border: rgba(255,255,255,.07);
-  --navy-hover:  rgba(255,255,255,.06);
+  /* Legacy sidebar aliases (keep for Sidebar.jsx compat) */
+  --navy-border: #E6E8EA;
+  --navy-hover:  #F2F4F6;
+  --navy:        #191C1E;
 
-  /* Semantic colors */
+  /* ── Semantic colors ────────────────────────────────────── */
   --success:    #10B981;
   --warning:    #F59E0B;
-  --danger:     #EF4444;
-  --info:       #1565C0;
+  --danger:     #BA1A1A;
+  --error:      #BA1A1A;
+  --info:       #4F46E5;
 
   --green:      #10B981;  --green-l:  rgba(16,185,129,.10);  --green-b:  rgba(16,185,129,.22);  --green-d:  #065F46;
-  --red:        #EF4444;  --red-l:    rgba(239,68,68,.10);    --red-b:    rgba(239,68,68,.22);    --red-d:    #991B1B;
+  --red:        #BA1A1A;  --red-l:    rgba(186,26,26,.10);    --red-b:    rgba(186,26,26,.22);    --red-d:    #93000A;
   --amber:      #F59E0B;  --amber-l:  rgba(245,158,11,.10);   --amber-b:  rgba(245,158,11,.22);   --amber-d:  #92400E;
-  --purple:     #7C3AED;  --purple-l: rgba(124,58,237,.10);   --purple-b: rgba(124,58,237,.22);
-  --cyan:       #0891B2;  --cyan-l:   rgba(8,145,178,.10);    --cyan-b:   rgba(8,145,178,.22);
+  --purple:     #4F46E5;  --purple-l: rgba(79,70,229,.10);    --purple-b: rgba(79,70,229,.22);
+  --cyan:       #006693;  --cyan-l:   rgba(0,102,147,.10);    --cyan-b:   rgba(0,102,147,.22);
   --teal:       #10B981;  --teal-l:   rgba(16,185,129,.10);   --teal-b:   rgba(16,185,129,.22);   --teal-dark:#047857;
-  --blue:       #1565C0;  --blue-dark:#1044A0;  --blue-l: rgba(21,101,192,.08);  --blue-b: rgba(21,101,192,.22);
+  --blue:       #4F46E5;  --blue-dark:#3525CD; --blue-l: rgba(79,70,229,.08); --blue-b: rgba(79,70,229,.22);
   --gold:       #F59E0B;  --gold-l:   rgba(245,158,11,.10);   --gold-b:   rgba(245,158,11,.22);
-  --rose:       #EF4444;  --rose-l:   rgba(239,68,68,.10);    --rose-b:   rgba(239,68,68,.22);
+  --rose:       #BA1A1A;  --rose-l:   rgba(186,26,26,.10);    --rose-b:   rgba(186,26,26,.22);
 
-  /* Color-border helpers (used by audit widget) */
-  --color-border-danger:   rgba(239,68,68,.35);
+  /* Color-border helpers */
+  --color-border-danger:   rgba(186,26,26,.35);
   --color-border-warning:  rgba(245,158,11,.35);
   --color-border-success:  rgba(16,185,129,.35);
-  --color-border-info:     rgba(21,101,192,.35);
-  --color-border-tertiary: rgba(0,0,0,.07);
-  --color-border-secondary:rgba(0,0,0,.11);
+  --color-border-info:     rgba(79,70,229,.35);
+  --color-border-tertiary: #E6E8EA;
+  --color-border-secondary:#D8DADC;
   --color-background-primary:   #FFFFFF;
-  --color-background-secondary: #F8FAFC;
-  --color-background-danger:    rgba(239,68,68,.08);
+  --color-background-secondary: #F7F9FB;
+  --color-background-danger:    rgba(186,26,26,.08);
   --color-background-warning:   rgba(245,158,11,.08);
   --color-background-success:   rgba(16,185,129,.08);
-  --color-background-info:      rgba(21,101,192,.08);
-  --color-text-primary:   #0D1B3D;
-  --color-text-secondary: #6B7280;
-  --color-text-danger:    #DC2626;
+  --color-background-info:      rgba(79,70,229,.08);
+  --color-text-primary:   #191C1E;
+  --color-text-secondary: #777587;
+  --color-text-danger:    #BA1A1A;
   --color-text-warning:   #D97706;
   --color-text-success:   #059669;
-  --color-text-info:      #1565C0;
+  --color-text-info:      #3525CD;
 
-  /* Gradients */
-  --grad:     linear-gradient(135deg, #1565C0, #5CB85C);
-  --grad-135: linear-gradient(135deg, #1565C0, #5CB85C);
-  --grad-vertical: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
-  --primary:    #1565C0;
-  --primary-h:  #1044A0;
-  --primary-l:  rgba(21,101,192,.08);
-  --primary-ll: rgba(21,101,192,.04);
-  --accent:     #1565C0;
-  --accent-l:   rgba(21,101,192,.08);
+  /* ── Gradients ──────────────────────────────────────────── */
+  --grad:          linear-gradient(135deg, #4F46E5, #006693);
+  --grad-135:      linear-gradient(135deg, #4F46E5, #006693);
+  --grad-vertical: linear-gradient(180deg, #FFFFFF 0%, #F7F9FB 100%);
+  --primary:       #4F46E5;
+  --primary-h:     #3525CD;
+  --primary-l:     rgba(79,70,229,.08);
+  --primary-ll:    rgba(79,70,229,.04);
+  --accent:        #4F46E5;
+  --accent-l:      rgba(79,70,229,.08);
 
-  /* Shadows — softer, more premium */
+  /* ── Shadows ────────────────────────────────────────────── */
   --shadow-xs: 0 1px 2px rgba(0,0,0,.04);
-  --shadow-sm: 0 1px 4px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow:    0 4px 16px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
-  --shadow-md: 0 8px 28px rgba(0,0,0,.09), 0 3px 8px rgba(0,0,0,.05);
-  --shadow-lg: 0 16px 44px rgba(0,0,0,.11), 0 6px 16px rgba(0,0,0,.06);
-  --shadow-xl: 0 24px 60px rgba(0,0,0,.13), 0 8px 24px rgba(0,0,0,.07);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.03);
+  --shadow:    0 4px 16px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.03);
+  --shadow-md: 0 8px 28px rgba(0,0,0,.08), 0 3px 8px rgba(0,0,0,.04);
+  --shadow-lg: 0 16px 44px rgba(0,0,0,.09), 0 6px 16px rgba(0,0,0,.05);
+  --shadow-xl: 0 24px 60px rgba(0,0,0,.11), 0 8px 24px rgba(0,0,0,.06);
+  --shadow-primary: 0 10px 30px rgba(79,70,229,.12);
 
-  /* Border radius — rounder, more modern */
+  /* ── Radii ──────────────────────────────────────────────── */
   --r:      8px;
-  --r-md:   10px;
-  --r-lg:   12px;
-  --r-xl:   16px;
-  --r-2xl:  20px;
-  --r-pill: 999px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   24px;
+  --r-2xl:  28px;
+  --r-pill: 9999px;
 
-  /* Transitions */
-  --t:      0.14s ease;
-  --t-slow: 0.24s ease;
+  /* ── Transitions (150ms per DESIGN.md) ──────────────────── */
+  --t:      0.15s cubic-bezier(.4,0,.2,1);
+  --t-slow: 0.25s cubic-bezier(.4,0,.2,1);
 
-  /* Typography */
-  --fn:      'DM Sans', system-ui, -apple-system, sans-serif;
-  --fn-display: 'Sora', system-ui, sans-serif;
-  --fn-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+  /* ── Typography ─────────────────────────────────────────── */
+  --fn:         'Geist', system-ui, -apple-system, sans-serif;
+  --fn-display: 'Geist', system-ui, sans-serif;
+  --fn-mono:    'Geist', 'SFMono-Regular', monospace;
 }
 
 /* ─── RESET + BASE ───────────────────────────────────────────────────────── */
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body { font-family: var(--fn); background: var(--bg); color: var(--text-1); line-height: 1.55; }
+body { font-family: var(--fn); background: var(--bg); color: var(--text-1); line-height: 1.55; font-family: var(--fn); }
 a { text-decoration: none; color: inherit; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; }
 input, select, textarea { font-family: inherit; }
@@ -168,7 +174,8 @@ svg { display: block; flex-shrink: 0; }
   position: fixed;
   top: 0; left: 0; bottom: 0;
   z-index: 200;
-  border-right: 1px solid var(--sb-border);
+  border-right: 1.5px solid var(--sb-border);
+  box-shadow: 2px 0 12px rgba(0,0,0,.04);
 }
 
 /* Logo */
@@ -184,19 +191,19 @@ svg { display: block; flex-shrink: 0; }
   flex-shrink: 0;
 }
 .sb-logo h1 {
-  font-family: var(--fn-display);
+  font-family: var(--fn);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -.02em;
   color: #fff;
 }
-.sb-logo h1 .brand-prime       { font-weight: 700; color: #ffffff; }
-.sb-logo h1 .brand-credential  { font-weight: 500; color: #5CB85C; }
+.sb-logo h1 .brand-prime       { font-weight: 800; background: var(--pr); color: #fff; padding: 1px 6px 1px 5px; border-radius: 4px 10px 4px 4px; letter-spacing: -.01em; }
+.sb-logo h1 .brand-credential  { font-weight: 700; color: var(--text-1); }
 .sb-logo-sub {
   font-size: 9px;
-  font-weight: 600;
-  letter-spacing: .1em;
+  font-weight: 700;
+  letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--sb-group-label);
   margin-top: 2px;
@@ -256,7 +263,7 @@ svg { display: block; flex-shrink: 0; }
   font-weight: 600;
 }
 .sb-item.active svg { opacity: 1; }
-.sb-item svg { opacity: .7; flex-shrink: 0; transition: opacity var(--t); }
+.sb-item svg { opacity: .65; flex-shrink: 0; transition: opacity var(--t); }
 .sb-item:hover svg { opacity: .9; }
 
 /* Sidebar badges */
@@ -306,10 +313,10 @@ svg { display: block; flex-shrink: 0; }
   flex-shrink: 0;
 }
 .sb-user-info { flex: 1; min-width: 0; }
-.sb-user-name  { font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sb-user-email { font-size: 10.5px; color: rgba(255,255,255,.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-.sb-signout    { background: none; border: none; color: rgba(255,255,255,.28); font-size: 10px; cursor: pointer; padding: 0; font-family: inherit; transition: color var(--t); display: block; margin-top: 1px; }
-.sb-signout:hover { color: #5CB85C; }
+.sb-user-name  { font-size: 12px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-email { font-size: 10.5px; color: var(--text-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.sb-signout    { background: none; border: none; color: var(--text-4); font-size: 10px; cursor: pointer; padding: 0; font-family: inherit; transition: color var(--t); display: block; margin-top: 1px; }
+.sb-signout:hover { color: var(--pr); }
 
 /* Collapse button */
 .sb-collapse-btn {
@@ -344,7 +351,7 @@ svg { display: block; flex-shrink: 0; }
 /* ─── TOPBAR ──────────────────────────────────────────────────────────────── */
 .topbar {
   background: var(--topbar-bg);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
   padding: 0 24px;
   height: var(--topbar-h);
   display: flex;
@@ -1142,7 +1149,7 @@ input::placeholder, textarea::placeholder { color: var(--text-4); }
 }
 .sb-group-divider {
   height: 1px;
-  background: rgba(255,255,255,.05);
+  background: var(--sb-bg-2);
   margin: 5px 8px;
 }
 .sb-badge-dot {
@@ -1675,9 +1682,9 @@ tr:hover .row-actions { opacity: 1; }
   border-left: 1.5px solid rgba(255,255,255,.07);
   margin-bottom: 1px;
 }
-.sb-child:hover { color: rgba(255,255,255,.75); background: rgba(255,255,255,.05); border-left-color: rgba(255,255,255,.2); }
+.sb-child:hover { color: rgba(255,255,255,.75); background: var(--sb-bg-2); border-left-color: rgba(255,255,255,.2); }
 .sb-child.active { color: #fff; font-weight: 600; background: rgba(21,101,192,.2); border-left-color: var(--pr); }
-.sb-child-icon { color: rgba(255,255,255,.35); display: flex; flex-shrink: 0; }
+.sb-child-icon { color: var(--text-4); display: flex; flex-shrink: 0; }
 .sb-child.active .sb-child-icon { color: rgba(255,255,255,.7); }
 
 /* sb-expand-icon (chevron on expandable items) */
@@ -2214,4 +2221,49 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 /* Responsive: payer grid → 2 cols on narrow drawers */
 @media (max-width: 520px) {
   .payer-picker-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+
+/* ─── DESIGN.md — Page transition animation ──────────────────────────────── */
+.page-enter {
+  animation: fadeUp 0.25s cubic-bezier(.4,0,.2,1) both;
+}
+
+/* ─── DESIGN.md — Shimmer skeleton loading ──────────────────────────────── */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2, var(--elevated));
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.6) 50%, transparent 100%);
+  animation: shimmer 0.8s linear infinite;
+}
+
+/* ─── DESIGN.md — Intelligence glow for priority cards ──────────────────── */
+.glow-primary {
+  box-shadow: 0 10px 30px rgba(79,70,229,.08), 0 2px 6px rgba(0,0,0,.04);
+}
+
+/* ─── DESIGN.md — Status dot ────────────────────────────────────────────── */
+.status-optimal::before {
+  content: '';
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #22C55E;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.2);
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* ─── Geist mono for data values ────────────────────────────────────────── */
+.mono-data {
+  font-family: var(--fn-mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.01em;
 }

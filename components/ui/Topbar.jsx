@@ -48,9 +48,19 @@ export function Topbar({ page, setPage, openDocModal, openTaskModal, openEnrollM
           </button>
         </div>
 
-        {/* Centre: page title */}
-        <div className="topbar-title" style={{ flex: '0 0 auto', fontSize: 14, fontWeight: 500, color: 'var(--text-2)', whiteSpace: 'nowrap', padding: '0 16px' }}>
-          {pageTitle}
+        {/* Centre: branded app name + page title */}
+        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-.02em' }}>
+            LACentra Revenue Intelligence
+          </span>
+          <span style={{ width: 1, height: 16, background: 'var(--border-mid)', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-3)' }}>{pageTitle}</span>
+        </div>
+
+        {/* System status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-3)', fontWeight: 500, whiteSpace: 'nowrap', padding: '0 8px' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 2px rgba(34,197,94,.2)', flexShrink: 0, display: 'inline-block' }} />
+          System Status: Optimal
         </div>
 
         {/* Right: actions */}

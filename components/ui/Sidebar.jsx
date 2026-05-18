@@ -7,17 +7,7 @@
 
 import { useState } from 'react'
 
-function LacentraMark({ size = 22 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-      {/* Shield shape split: left half blue, right half green */}
-      <path d="M24 4L6 12V26C6 35 14 42 24 46C34 42 42 35 42 26V12L24 4Z" fill="#1565C0"/>
-      <path d="M24 4L42 12V26C42 35 34 42 24 46V4Z" fill="#5CB85C"/>
-      {/* Checkmark */}
-      <polyline points="14,25 21,32 34,18" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-    </svg>
-  )
-}
+// Logo mark not used — brand rendered via CSS chip on text
 
 const I = {
   dashboard:   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
@@ -79,15 +69,44 @@ export function Sidebar({ page, setPage, alertCount, expDocs, user, signOut, db 
       {/* Logo */}
       <div className="sb-logo">
         <div className="sb-logo-mark">
-          <LacentraMark size={collapsed ? 26 : 28} />
           {!collapsed && (
             <div className="sb-logo-text">
-              <h1><span className="brand-prime">LAC</span><span className="brand-credential">entra</span></h1>
-              <div className="sb-logo-sub">Credentialing Platform</div>
+              <h1>
+                <span className="brand-prime">LAC</span><span className="brand-credential">entra</span>
+              </h1>
+              <div className="sb-logo-sub">Intelligence Layer</div>
+              <div style={{ width: 38, height: 2.5, background: 'var(--pr)', borderRadius: 2, marginTop: 5 }} />
             </div>
+          )}
+          {collapsed && (
+            <div style={{
+              width: 32, height: 32, background: 'var(--pr)', borderRadius: '4px 10px 4px 4px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 800, fontSize: 13, letterSpacing: '-.01em',
+              fontFamily: 'var(--fn)'
+            }}>L</div>
           )}
         </div>
       </div>
+
+      {/* New Analysis CTA */}
+      {!collapsed && (
+        <div style={{ padding: '0 10px 8px' }}>
+          <button style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            background: 'var(--pr)', color: '#fff', border: 'none', borderRadius: 'var(--r-md)',
+            padding: '9px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'var(--fn)', boxShadow: '0 2px 8px rgba(79,70,229,.25)',
+            transition: 'all var(--t)',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background='var(--pr-d)'; e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(79,70,229,.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background='var(--pr)'; e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 2px 8px rgba(79,70,229,.25)'; }}
+          >
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Analysis
+          </button>
+        </div>
+      )}
 
       {/* Navigation */}
       <div className="sb-nav">
