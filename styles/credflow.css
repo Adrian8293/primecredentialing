@@ -2047,3 +2047,171 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .kpi-grid { grid-template-columns: 1fr 1fr !important; }
   div[style*="repeat(4,1fr)"] { grid-template-columns: 1fr 1fr !important; }
 }
+
+/* ─── PAYER MODAL — step indicator, payer picker grid, guideline box ─────── */
+
+/* Step indicator (shared by PayerModal step 1→2) */
+.modal-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 20px;
+}
+.msi-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-4);
+  letter-spacing: .01em;
+}
+.msi-step.active {
+  color: var(--pr);
+}
+.msi-step.done {
+  color: var(--success);
+}
+.msi-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--elevated);
+  border: 1.5px solid var(--border-mid);
+  color: var(--text-4);
+  flex-shrink: 0;
+  transition: all .2s;
+}
+.msi-step.active .msi-num {
+  background: var(--pr);
+  border-color: var(--pr);
+  color: #fff;
+}
+.msi-step.done .msi-num {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+.msi-line {
+  flex: 1;
+  height: 1.5px;
+  background: var(--border-mid);
+  margin: 0 10px;
+  min-width: 24px;
+}
+.msi-line.done {
+  background: var(--success);
+}
+
+/* Payer picker grid — Step 1 */
+.payer-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.payer-pick-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: all .15s;
+  font-family: var(--fn);
+}
+.payer-pick-btn:hover {
+  border-color: var(--pr);
+  background: var(--pr-ll);
+  box-shadow: 0 2px 8px rgba(21,101,192,.08);
+}
+.payer-pick-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.payer-pick-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.3;
+}
+.payer-pick-type {
+  font-size: 10.5px;
+  color: var(--text-4);
+  margin-top: 1px;
+  line-height: 1.3;
+}
+.payer-pick-custom {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  background: var(--elevated);
+  border: 1.5px dashed var(--border-mid);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: all .15s;
+  font-family: var(--fn);
+}
+.payer-pick-custom:hover {
+  border-color: var(--pr);
+  background: var(--pr-ll);
+}
+
+/* Credentialing guidelines box — Step 2 */
+.guideline-box {
+  background: var(--pr-ll);
+  border: 1.5px solid rgba(21,101,192,.16);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.guideline-box-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pr);
+  margin-bottom: 8px;
+  letter-spacing: .01em;
+}
+.guideline-item {
+  font-size: 12px;
+  color: var(--text-2);
+  padding: 2px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.5;
+}
+.guideline-item::before {
+  content: '✓';
+  color: var(--success);
+  font-size: 11px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.guideline-warn {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(245,158,11,.08);
+  border: 1px solid rgba(245,158,11,.28);
+  border-radius: var(--r);
+  font-size: 11.5px;
+  color: var(--warning);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Responsive: payer grid → 2 cols on narrow drawers */
+@media (max-width: 520px) {
+  .payer-picker-grid { grid-template-columns: repeat(2, 1fr); }
+}
