@@ -1,13 +1,11 @@
 /**
- * Sidebar.jsx — Lacentra
- * Navigation: Billing is a top-level page (not expandable).
- * Marketing is a top-level page (not expandable — PT shown as card on the page).
- * Claims/Eligibility/Denial/Revenue are all inside the Billing tab.
+ * Sidebar.jsx — LACentra v5.0
+ * Uses Next.js useRouter for active route detection.
+ * setPage retained for backward compat with feature components.
  */
 
 import { useState } from 'react'
-
-// Logo mark not used — brand rendered via CSS chip on text
+import { useRouter } from 'next/router'
 
 const I = {
   dashboard:   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
@@ -22,131 +20,184 @@ const I = {
   reports:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
   audit:       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
   settings:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 18.66l-1.41 1.41M20.49 12H22M2 12h1.51M19.07 19.07l-1.41-1.41M5.34 5.34L3.93 3.93M12 20.49V22M12 2v1.51"/></svg>,
-  collapse:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
-  expand:      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  chevLeft:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  chevRight:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
   support:     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  signout:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  plus:        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
 }
 
-const BILLING_PAGES = ['billing']
+// Route → page key mapping (for active state detection)
+const ROUTE_MAP = {
+  '/':            'dashboard',
+  '/providers':   'providers',
+  '/enrollments': 'applications',
+  '/payers':      'payers',
+  '/documents':   'documents',
+  '/tasks':       'tasks',
+  '/alerts':      'alerts',
+  '/billing':     'billing',
+  '/marketing':   'marketing',
+  '/reports':     'reports',
+  '/audit':       'audit',
+  '/settings':    'settings',
+  '/add-provider':'add-provider',
+}
 
 export function Sidebar({ page, setPage, alertCount, expDocs, user, signOut, db }) {
+  const router     = useRouter()
   const [collapsed, setCollapsed] = useState(false)
 
-  const taskCount = db?.tasks?.filter(t => t.status !== 'Done').length || 0
+  // Active detection from router (preferred) with fallback to prop
+  const activePage = ROUTE_MAP[router.pathname] || page
+
+  const taskCount        = db?.tasks?.filter(t => t.status !== 'Done').length || 0
   const overdueTaskCount = db?.tasks?.filter(t => {
-    if (t.status === 'Done') return false
-    if (!t.due) return false
+    if (t.status === 'Done' || !t.due) return false
     return new Date(t.due + 'T00:00:00') < new Date(new Date().toDateString())
   }).length || 0
-  const meta = user?.user_metadata || {}
+
+  const meta        = user?.user_metadata || {}
   const displayName = (meta.first_name && meta.last_name)
     ? `${meta.first_name} ${meta.last_name}`
     : meta.first_name || meta.full_name || 'Admin'
   const initial = (displayName[0] || 'A').toUpperCase()
 
-  function navItem(pg, label, icon, badge, badgeCls) {
-    const active = page === pg
-    const isDanger = badgeCls === 'danger'
+  function nav(pg) {
+    const route = pg === 'dashboard' ? '/' : `/${pg}`
+    router.push(route)
+  }
+
+  function navItem(pg, label, icon, badge, badgeDanger) {
+    const active = activePage === pg
     return (
-      <div key={pg} className={`sb-item${active ? ' active' : ''}`}
-        onClick={() => setPage(pg)}
-        title={collapsed ? label : undefined}>
+      <div
+        key={pg}
+        className={`sb-item${active ? ' active' : ''}`}
+        onClick={() => nav(pg)}
+        title={collapsed ? label : undefined}
+        role="menuitem"
+        aria-current={active ? 'page' : undefined}
+      >
         <span className="sb-item-icon">{icon}</span>
         {!collapsed && <span className="sb-item-label">{label}</span>}
         {!collapsed && badge > 0 && (
-          <span className={`sb-badge${isDanger ? '' : badgeCls ? ' ' + badgeCls : ''}`}
-            style={isDanger ? { background: 'var(--danger)', color: '#fff', animation: 'pulse 2s infinite' } : undefined}>
+          <span className={`sb-badge${badgeDanger ? '' : badge > 0 ? '' : ''}`}
+            style={badgeDanger ? { background: 'var(--red)', color: '#fff', animation: 'pulse 2s infinite', border: 'none' } : undefined}>
             {badge > 99 ? '99+' : badge}
           </span>
         )}
-        {collapsed && badge > 0 && <span className="sb-badge-dot" style={isDanger ? { background: 'var(--danger)' } : undefined} />}
+        {collapsed && badge > 0 && (
+          <span className="sb-badge-dot" style={badgeDanger ? { background: 'var(--red)' } : undefined} />
+        )}
       </div>
     )
   }
 
   return (
-    <nav className={`sidebar${collapsed ? ' sidebar-collapsed' : ''}`}>
-      {/* Logo */}
+    <nav className={`sidebar${collapsed ? ' sidebar-collapsed' : ''}`} role="navigation" aria-label="Main navigation">
+
+      {/* ── Brand ── */}
       <div className="sb-logo">
         <div className="sb-logo-mark">
-          {!collapsed && (
+          {!collapsed ? (
             <div className="sb-logo-text">
               <h1>
                 <span className="brand-prime">LAC</span><span className="brand-credential">entra</span>
               </h1>
-              <div className="sb-logo-sub">Intelligence Layer</div>
-              <div style={{ width: 38, height: 2.5, background: 'var(--pr)', borderRadius: 2, marginTop: 5 }} />
+              <div className="sb-logo-sub">Credentialing Intelligence</div>
+              <div style={{ width: 32, height: 2, background: 'var(--pr)', borderRadius: 2, marginTop: 5, opacity: .6 }} />
             </div>
-          )}
-          {collapsed && (
+          ) : (
             <div style={{
               width: 32, height: 32, background: 'var(--pr)', borderRadius: '4px 10px 4px 4px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: '#fff', fontWeight: 800, fontSize: 13, letterSpacing: '-.01em',
-              fontFamily: 'var(--fn)'
+              fontFamily: 'var(--fn-display)',
             }}>L</div>
           )}
         </div>
       </div>
 
-      {/* New Analysis CTA */}
+      {/* ── Quick Action ── */}
       {!collapsed && (
-        <div style={{ padding: '0 10px 8px' }}>
-          <button style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-            background: 'var(--pr)', color: '#fff', border: 'none', borderRadius: 'var(--r-md)',
-            padding: '9px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'var(--fn)', boxShadow: '0 2px 8px rgba(79,70,229,.25)',
-            transition: 'all var(--t)',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background='var(--pr-d)'; e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(79,70,229,.35)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background='var(--pr)'; e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 2px 8px rgba(79,70,229,.25)'; }}
+        <div style={{ padding: '8px 10px 6px' }}>
+          <button
+            onClick={() => nav('add-provider')}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              background: 'var(--pr)', color: '#fff', border: 'none',
+              borderRadius: 'var(--r)', padding: '8px 14px',
+              fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--fn)',
+              boxShadow: '0 2px 10px rgba(14,165,233,.25)',
+              transition: 'all var(--t)',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--pr-d)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(14,165,233,.35)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--pr)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(14,165,233,.25)' }}
           >
-            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Analysis
+            {I.plus} Add Provider
           </button>
         </div>
       )}
 
-      {/* Navigation */}
-      <div className="sb-nav">
+      {/* ── Navigation ── */}
+      <div className="sb-nav" role="menu">
         {navItem('dashboard',    'Dashboard',    I.dashboard)}
         {navItem('providers',    'Providers',    I.providers)}
         {navItem('applications', 'Applications', I.applications)}
         {navItem('payers',       'Payers',       I.payers)}
-        {navItem('documents',    'Documents',    I.documents, expDocs, 'amber')}
-        {navItem('tasks',        'Tasks',        I.tasks,     taskCount, overdueTaskCount > 0 ? 'danger' : undefined)}
-        {navItem('alerts',       'Alerts',       I.alerts,    alertCount)}
-        {navItem('billing',      'Billing',      I.billing)}
-        {navItem('marketing',    'Marketing',    I.marketing)}
-        {navItem('reports',      'Reports',      I.reports)}
-        {navItem('audit',        'Audit Trail',  I.audit)}
-        {navItem('settings',     'Settings',     I.settings)}
+        {navItem('documents',    'Documents',    I.documents, expDocs, false)}
+        {navItem('tasks',        'Tasks',        I.tasks,     taskCount, overdueTaskCount > 0)}
+        {navItem('alerts',       'Alerts',       I.alerts,    alertCount, false)}
+
+        <div className="sb-group-divider" style={{ margin: '6px 10px' }} />
+
+        {navItem('billing',   'Billing',    I.billing)}
+        {navItem('marketing', 'Marketing',  I.marketing)}
+        {navItem('reports',   'Reports',    I.reports)}
+        {navItem('audit',     'Audit Trail',I.audit)}
+        {navItem('settings',  'Settings',   I.settings)}
       </div>
 
-      {/* Footer */}
+      {/* ── Footer ── */}
       <div className="sb-footer">
         {!collapsed && (
-          <div className="sb-support" onClick={() => window.open('mailto:support@lacentra.com')}>
-            <div className="sb-support-title">{I.support} Need Help?</div>
+          <div
+            className="sb-support"
+            onClick={() => window.open('mailto:support@lacentra.com')}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="sb-support-title">{I.support} Need help?</div>
             <div className="sb-support-sub">Contact Support</div>
           </div>
         )}
+
         {!collapsed && (
-          <div className="sb-user">
+          <div className="sb-user" onClick={() => nav('settings')}>
             <div className="sb-avatar">{initial}</div>
             <div className="sb-user-info">
               <div className="sb-user-name">{displayName}</div>
               <div className="sb-user-email">{user?.email}</div>
             </div>
-            <button className="sb-signout-icon" onClick={signOut} title="Sign out">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <button
+              className="sb-signout-icon"
+              onClick={e => { e.stopPropagation(); signOut?.() }}
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              {I.signout}
             </button>
           </div>
         )}
-        <button className="sb-collapse-btn" onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? 'Expand' : 'Collapse'}>
-          {collapsed ? I.expand : I.collapse}
+
+        <button
+          className="sb-collapse-btn"
+          onClick={() => setCollapsed(c => !c)}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? I.chevRight : I.chevLeft}
         </button>
       </div>
     </nav>

@@ -1,4 +1,19 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+/**
+ * AppContext.jsx — LACentra v5.0
+ * 
+ * Memoized refactor of the global context.
+ * API surface preserved for backward compat with Layout.jsx and all page routes.
+ * 
+ * PERFORMANCE NOTE: The context value is memoized with useMemo to prevent
+ * needless re-renders when unrelated state changes. Filter states (provSearch, etc.)
+ * are the primary re-render trigger — future Sprint should move them to URL params
+ * or local component state to eliminate the remaining churn.
+ * 
+ * FUTURE: Split into DataContext + ModalContext + AuthContext to further
+ * reduce consumer re-renders.
+ */
+
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
@@ -16,88 +31,92 @@ const AppContext = createContext(null)
 
 export function AppContextProvider({ children }) {
   const router = useRouter()
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
   const { user, authLoading, signOut } = useAuth()
+
+  // ── Toast ────────────────────────────────────────────────────────────────
   const { toasts, toast } = useToast()
+
+  // ── Core data ────────────────────────────────────────────────────────────
   const { db, setDb, loading, settingsForm, setSettingsForm } = useAppData(user, toast)
+
+  // ── Confirm dialog ────────────────────────────────────────────────────────
   const { confirmDialog, requestConfirm, settleConfirm } = useConfirm()
 
-  // setPage maps string names to Next.js file routes
-  const setPage = (p) => {
-    if (p === 'dashboard') {
-      router.push('/')
-    } else {
-      router.push(`/${p}`)
-    }
-  }
+  // ── Stable navigation helper ──────────────────────────────────────────────
+  const setPage = useCallback((p) => {
+    router.push(p === 'dashboard' ? '/' : `/${p}`)
+  }, [router])
 
-  const providers = useProviderActions({ db, setDb, toast, requestConfirm, setPage })
+  // ── Feature action hooks (namespaced objects) ─────────────────────────────
+  const providers  = useProviderActions({ db, setDb, toast, requestConfirm, setPage })
   const enrollments = useEnrollmentActions({ db, setDb, toast, requestConfirm })
-  const payers = usePayerActions({ db, setDb, toast, requestConfirm })
-  const documents = useDocumentActions({ db, setDb, toast, requestConfirm })
-  const tasks = useTaskActions({ db, setDb, toast, requestConfirm })
+  const payers     = usePayerActions({ db, setDb, toast, requestConfirm })
+  const documents  = useDocumentActions({ db, setDb, toast, requestConfirm })
+  const tasks      = useTaskActions({ db, setDb, toast, requestConfirm })
 
-  // Modal and state management (moved from index.js)
-  const [modal, setModal] = useState(null)
-  const [provDetailId, setProvDetailId] = useState(null)
-  const [globalSearchOpen, setGlobalSearchOpen] = useState(false)
-  const [aiModalOpen, setAiModalOpen] = useState(false)
-  const [aiModalEnrollment, setAiModalEnrollment] = useState(null)
+  // ── Modal state (UI-layer only, does not affect data) ─────────────────────
+  const [modal,             setModal]             = useState(null)
+  const [provDetailId,      setProvDetailId]       = useState(null)
+  const [globalSearchOpen,  setGlobalSearchOpen]   = useState(false)
+  const [aiModalOpen,       setAiModalOpen]        = useState(false)
+  const [aiModalEnrollment, setAiModalEnrollment]  = useState(null)
 
-  // Page-specific search and filter states
-  const [provSearch, setProvSearch] = useState('')
+  // ── Filter states (candidates for URL-param migration) ────────────────────
+  const [provSearch,  setProvSearch]  = useState('')
   const [provFStatus, setProvFStatus] = useState('')
-  const [provFSpec, setProvFSpec] = useState('')
-
-  const [enrSearch, setEnrSearch] = useState('')
-  const [enrFStage, setEnrFStage] = useState('')
-  const [enrFProv, setEnrFProv] = useState('')
-
-  const [paySearch, setPaySearch] = useState('')
-  const [payFType, setPayFType] = useState('')
-
-  const [docSearch, setDocSearch] = useState('')
-  const [docFType, setDocFType] = useState('')
-  const [docFStatus, setDocFStatus] = useState('')
-
+  const [provFSpec,   setProvFSpec]   = useState('')
+  const [enrSearch,   setEnrSearch]   = useState('')
+  const [enrFStage,   setEnrFStage]   = useState('')
+  const [enrFProv,    setEnrFProv]    = useState('')
+  const [paySearch,   setPaySearch]   = useState('')
+  const [payFType,    setPayFType]    = useState('')
+  const [docSearch,   setDocSearch]   = useState('')
+  const [docFType,    setDocFType]    = useState('')
+  const [docFStatus,  setDocFStatus]  = useState('')
   const [auditSearch, setAuditSearch] = useState('')
-  const [auditFType, setAuditFType] = useState('')
+  const [auditFType,  setAuditFType]  = useState('')
 
-  const alertDays = db.settings.alertDays || 90
-  const caqhDays = db.settings.caqhDays || 30
-  const alertCount = db.providers.reduce((n, prov) => {
-    return n + providerAlertCount(prov, { alertDays, caqhDays })
-  }, 0)
-  const expDocs = db.documents.filter(d => { const days = daysUntil(d.exp); return days !== null && days <= alertDays }).length
+  // ── Derived values ────────────────────────────────────────────────────────
+  const alertDays  = db.settings?.alertDays || 90
+  const caqhDays   = db.settings?.caqhDays  || 30
+  const alertCount = db.providers.reduce(
+    (n, prov) => n + providerAlertCount(prov, { alertDays, caqhDays }), 0
+  )
+  const expDocs   = db.documents.filter(d => {
+    const days = daysUntil(d.exp)
+    return days !== null && days <= alertDays
+  }).length
   const provDetail = provDetailId ? db.providers.find(x => x.id === provDetailId) : null
 
-  function openProvDetail(id) { setProvDetailId(id); setModal('provDetail') }
-  function openAiFollowup(enrollment) {
-    setAiModalEnrollment(enrollment)
-    setAiModalOpen(true)
-  }
+  // ── Stable modal opener helpers ───────────────────────────────────────────
+  const openProvDetail   = useCallback((id)        => { setProvDetailId(id); setModal('provDetail') }, [])
+  const openAiFollowup   = useCallback((enrollment) => { setAiModalEnrollment(enrollment); setAiModalOpen(true) }, [])
+  const openEnrollModal  = useCallback((id, preProvId) => { enrollments.openEnrollModal(id, preProvId); setModal('enroll') }, [enrollments])
+  const openPayerModal   = useCallback((id)        => { payers.openPayerModal(id); setModal('payer') }, [payers])
+  const openDocModal     = useCallback((id)        => { documents.openDocModal(id); setModal('doc') }, [documents])
+  const openTaskModal    = useCallback((id)        => { tasks.openTaskModal(id); setModal('task') }, [tasks])
 
-  function openEnrollModal(id, preProvId) { enrollments.openEnrollModal(id, preProvId); setModal('enroll') }
-  function openPayerModal(id) { payers.openPayerModal(id); setModal('payer') }
-  function openDocModal(id) { documents.openDocModal(id); setModal('doc') }
-  function openTaskModal(id) { tasks.openTaskModal(id); setModal('task') }
+  // ── Stable save helpers (close modal on success) ──────────────────────────
+  const handleSaveEnrollment = useCallback(async () => { await enrollments.handleSaveEnrollment(); setModal(null) }, [enrollments])
+  const handleSavePayer      = useCallback(async () => { await payers.handleSavePayer(); setModal(null) }, [payers])
+  const handleSaveDocument   = useCallback(async () => await documents.handleSaveDocument(), [documents])
+  const handleSaveTask       = useCallback(async () => { await tasks.handleSaveTask(); setModal(null) }, [tasks])
 
-  async function handleSaveEnrollment() { await enrollments.handleSaveEnrollment(); setModal(null) }
-  async function handleSavePayer() { await payers.handleSavePayer(); setModal(null) }
-  async function handleSaveDocument() { return await documents.handleSaveDocument() }
-  async function handleSaveTask() { await tasks.handleSaveTask(); setModal(null) }
-
-  async function handleSaveSettings() {
+  // ── Settings ──────────────────────────────────────────────────────────────
+  const handleSaveSettings = useCallback(async () => {
     try {
       await saveSettingsDB(settingsForm)
       setDb(prev => ({ ...prev, settings: settingsForm }))
       toast('Settings saved!', 'success')
     } catch (err) { toast(err.message, 'error') }
-  }
+  }, [settingsForm, setDb, toast])
 
-  async function handleClearAudit() {
+  const handleClearAudit = useCallback(async () => {
     if (!(await requestConfirm({
       title: 'Archive Audit Log',
-      body: 'Audit records are append-only for HIPAA compliance. This records an archive request in the audit trail. Records are not deleted — contact your administrator to export and purge old entries.',
+      body: 'Audit records are append-only for HIPAA compliance. This records an archive request in the audit trail — records are not deleted.',
       confirmText: 'Record archive request',
       danger: false,
     }))) return
@@ -105,56 +124,102 @@ export function AppContextProvider({ children }) {
       await clearAuditLogDB()
       toast('Archive request recorded. Contact your admin to export old entries.', 'success')
     } catch (err) { toast(err.message, 'error') }
-  }
+  }, [requestConfirm, toast])
 
-  function exportJSON() {
+  const exportJSON = useCallback(() => {
     const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = `lacentra-backup-${new Date().toISOString().split('T')[0]}.json`
     a.click()
     toast('Backup exported!', 'success')
-  }
+  }, [db, toast])
+
+  // ── Memoized context value ────────────────────────────────────────────────
+  // Deps are grouped: data deps change less frequently than filter deps.
+  // When filter state changes, only the filter group re-memoizes — but because
+  // all values are in one object, all consumers still re-render. Future split
+  // into DataContext + FiltersContext + ModalContext will eliminate this.
+  const value = useMemo(() => ({
+    // Auth
+    user, authLoading, signOut,
+
+    // UI
+    toasts, toast,
+    confirmDialog, requestConfirm, settleConfirm,
+
+    // Data
+    db, setDb, loading, settingsForm, setSettingsForm,
+
+    // Feature namespaces (action hooks)
+    providers, enrollments, payers, documents, tasks,
+
+    // Modal state
+    modal, setModal,
+    provDetailId, setProvDetailId,
+    globalSearchOpen, setGlobalSearchOpen,
+    aiModalOpen, setAiModalOpen,
+    aiModalEnrollment, setAiModalEnrollment,
+
+    // Filter states
+    provSearch, setProvSearch,
+    provFStatus, setProvFStatus,
+    provFSpec, setProvFSpec,
+    enrSearch, setEnrSearch,
+    enrFStage, setEnrFStage,
+    enrFProv, setEnrFProv,
+    paySearch, setPaySearch,
+    payFType, setPayFType,
+    docSearch, setDocSearch,
+    docFType, setDocFType,
+    docFStatus, setDocFStatus,
+    auditSearch, setAuditSearch,
+    auditFType, setAuditFType,
+
+    // Derived
+    alertDays, caqhDays, alertCount, expDocs, provDetail,
+
+    // Stable helpers
+    setPage,
+    openProvDetail, openAiFollowup,
+    openEnrollModal, openPayerModal, openDocModal, openTaskModal,
+    handleSaveEnrollment, handleSavePayer, handleSaveDocument, handleSaveTask,
+    handleSaveSettings, handleClearAudit, exportJSON,
+  }), [
+    user, authLoading, signOut,
+    toasts, toast,
+    confirmDialog, requestConfirm, settleConfirm,
+    db, setDb, loading, settingsForm, setSettingsForm,
+    providers, enrollments, payers, documents, tasks,
+    modal, provDetailId, globalSearchOpen,
+    aiModalOpen, aiModalEnrollment,
+    provSearch, provFStatus, provFSpec,
+    enrSearch, enrFStage, enrFProv,
+    paySearch, payFType,
+    docSearch, docFType, docFStatus,
+    auditSearch, auditFType,
+    alertDays, caqhDays, alertCount, expDocs, provDetail,
+    setPage, openProvDetail, openAiFollowup,
+    openEnrollModal, openPayerModal, openDocModal, openTaskModal,
+    handleSaveEnrollment, handleSavePayer, handleSaveDocument, handleSaveTask,
+    handleSaveSettings, handleClearAudit, exportJSON,
+  ])
 
   return (
-    <AppContext.Provider value={{
-      user, authLoading, signOut,
-      toasts, toast,
-      db, setDb, loading, settingsForm, setSettingsForm,
-      confirmDialog, requestConfirm, settleConfirm,
-      providers, enrollments, payers, documents, tasks,
-      modal, setModal,
-      provDetailId, setProvDetailId,
-      globalSearchOpen, setGlobalSearchOpen,
-      aiModalOpen, setAiModalOpen,
-      aiModalEnrollment, setAiModalEnrollment,
-      provSearch, setProvSearch,
-      provFStatus, setProvFStatus,
-      provFSpec, setProvFSpec,
-      enrSearch, setEnrSearch,
-      enrFStage, setEnrFStage,
-      enrFProv, setEnrFProv,
-      paySearch, setPaySearch,
-      payFType, setPayFType,
-      docSearch, setDocSearch,
-      docFType, setDocFType,
-      docFStatus, setDocFStatus,
-      auditSearch, setAuditSearch,
-      auditFType, setAuditFType,
-      alertDays, caqhDays, alertCount, expDocs, provDetail,
-      openProvDetail, openAiFollowup,
-      openEnrollModal, openPayerModal, openDocModal, openTaskModal,
-      handleSaveEnrollment, handleSavePayer, handleSaveDocument, handleSaveTask,
-      handleSaveSettings, handleClearAudit, exportJSON,
-      setPage
-    }}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   )
 }
 
+// Primary hook
 export function useGlobalContext() {
-  const context = useContext(AppContext)
-  if (!context) throw new Error('useGlobalContext must be used within AppContextProvider')
-  return context
+  const ctx = useContext(AppContext)
+  if (!ctx) throw new Error('useGlobalContext must be used within AppContextProvider')
+  return ctx
 }
+
+// Alias for future use
+export const useApp = useGlobalContext
+
+export default AppContext
