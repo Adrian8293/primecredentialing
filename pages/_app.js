@@ -2,6 +2,9 @@ import '../styles/globals.css'
 import '../styles/credflow.css'
 import React from 'react'
 import Head from 'next/head'
+import { useRouter } from 'next/router'
+import { AppContextProvider } from '../context/AppContext'
+import { Layout } from '../components/Layout'
 
 // ── Env validation (dev only) ────────────────────────────────────────────────
 if (typeof window === 'undefined' && process.env.NODE_ENV === 'development') {
@@ -79,6 +82,14 @@ class ErrorBoundary extends React.Component {
 }
 
 export default function App({ Component, pageProps }) {
+  const router = useRouter()
+  
+  // Define routes that shouldn't render the layout
+  const isGuestOrSpecialPage = 
+    router.pathname === '/login' || 
+    router.pathname === '/reset-password' || 
+    router.pathname.startsWith('/review/')
+
   return (
     <>
       <Head>
@@ -95,8 +106,17 @@ export default function App({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <ErrorBoundary>
-        <Component {...pageProps} />
+        <AppContextProvider>
+          {isGuestOrSpecialPage ? (
+            <Component {...pageProps} />
+          ) : (
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          )}
+        </AppContextProvider>
       </ErrorBoundary>
     </>
   )
 }
+

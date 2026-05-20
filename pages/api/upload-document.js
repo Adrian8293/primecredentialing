@@ -18,6 +18,7 @@ import { createClient } from '@supabase/supabase-js'
 import { IncomingForm } from 'formidable'
 import { fileTypeFromBuffer } from 'file-type'
 import fs from 'fs'
+import { apiHandler, validateOrigin } from '../../lib/api-middleware'
 
 // Service role client — server-side only, never expose to browser
 function getServiceClient() {
@@ -65,10 +66,8 @@ function parseForm(req) {
   })
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
+async function uploadDocumentHandler(req, res) {
+  if (!validateOrigin(req, res)) return
 
   try {
     const { fields, files } = await parseForm(req)
@@ -150,3 +149,10 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message || 'Upload failed' })
   }
 }
+
+export default apiHandler({
+  methods: ['POST'],
+  auth: true,
+  handler: uploadDocumentHandler,
+})
+

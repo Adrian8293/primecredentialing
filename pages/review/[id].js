@@ -3,9 +3,29 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { supabase } from '../../lib/supabase'
+import { createSessionClient } from '../../lib/supabase-server'
 import { providerFromDb } from '../../lib/mappers'
 import OpcaReviewPanel from '../../components/OpcaReviewPanel'
 import { addAudit } from '../../lib/db'
+
+export async function getServerSideProps(context) {
+  const { req, res } = context
+  const sessionClient = createSessionClient(req, res)
+  const { data: { user }, error } = await sessionClient.auth.getUser()
+
+  if (error || !user) {
+    return {
+      redirect: {
+        destination: `/login?redirectTo=${encodeURIComponent(req.url)}`,
+        permanent: false,
+      },
+    }
+  }
+
+  return {
+    props: {},
+  }
+}
 
 export default function ReviewPage() {
   const router = useRouter()
@@ -66,3 +86,4 @@ export default function ReviewPage() {
     </>
   )
 }
+
