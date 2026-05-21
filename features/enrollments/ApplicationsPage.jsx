@@ -257,10 +257,14 @@ export function ApplicationsPage({ db, openEnrollModal, search, setSearch, fStag
             {!pagedList.length ? (
               <tr><td colSpan={9}>
                 <div className="empty-state">
-                  <div className="empty-state-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1565C0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-                  <div className="empty-state-title">No applications found</div>
-                  <div className="empty-state-desc">{search || fProv || fStage ? 'Try adjusting your filters.' : 'Create your first application to get started.'}</div>
-                  {!search && !fProv && !fStage && <button className="btn btn-primary btn-sm" onClick={() => openEnrollModal()}>+ New Application</button>}
+                  <div className="ei">📋</div>
+                  <h4>No applications found</h4>
+                  <p style={{ fontSize: 12.5, color: 'var(--text-4)', margin: '4px 0 14px' }}>
+                    {search || fProv || fStage ? 'Try adjusting your filters.' : 'Create your first application to get started.'}
+                  </p>
+                  {!search && !fProv && !fStage
+                    ? <button className="btn btn-primary btn-sm" onClick={() => openEnrollModal()}>+ New Application</button>
+                    : <button className="btn btn-secondary btn-sm" onClick={() => { setSearch(''); setFProv(''); setFStage('') }}>Clear filters</button>}
                 </div>
               </td></tr>
             ) : pagedList.map(e => {
@@ -344,10 +348,10 @@ export function ApplicationsPage({ db, openEnrollModal, search, setSearch, fStag
             })}
           </tbody>
         </table>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', background: 'var(--elevated)', borderTop: '1px solid var(--border-l)', flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 11.5, color: 'var(--text-4)' }}>
+        <div className="pagination-bar">
+          <span className="pagination-info">
             Showing {pagedList.length ? ((pagination.page - 1) * 25) + 1 : 0}–{Math.min(pagination.page * 25, list.length)} of {list.length} applications
-            {list.length !== db.enrollments.length && <span> (filtered from {db.enrollments.length} total)</span>}
+            {list.length !== db.enrollments.length ? <span> · filtered from {db.enrollments.length} total</span> : null}
           </span>
           {someSelected && <span style={{ fontSize: 11.5, color: 'var(--pr)', fontWeight: 600 }}>{selected.size} row{selected.size !== 1 ? 's' : ''} selected</span>}
         </div>

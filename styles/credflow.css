@@ -865,3 +865,8 @@ input::placeholder, textarea::placeholder { color: var(--text-4); }
   animation: shimmer 1.4s infinite;
 }
 
+
+/* ─── LEGACY EMPTY STATE ALIASES (backward compat) ─────────────────────────── */
+.empty-state-icon { font-size: 32px; margin-bottom: 12px; opacity: .4; }
+.empty-state-title { font-size: 14.5px; font-weight: 600; color: var(--text-3); margin-bottom: 6px; }
+.empty-state-desc { font-size: 12.5px; color: var(--text-4); margin-bottom: 14px; }
