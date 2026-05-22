@@ -240,7 +240,8 @@ input{font-family:inherit;}
 .pc-trust-sep{width:3px;height:3px;border-radius:50%;background:#1E2D4A;}
 `
 
-// FIX: Prevent static prerendering — password reset page depends on URL tokens at runtime
+// Force dynamic server rendering — this page uses auth/context and must never
+// be statically prerendered by Next.js build.
 export async function getServerSideProps() {
   return { props: {} }
 }

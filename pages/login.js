@@ -529,7 +529,8 @@ input{font-family:inherit;}
 }
 `
 
-// FIX: Prevent static prerendering — login page depends on runtime auth state
+// Force dynamic server rendering — this page uses auth/context and must never
+// be statically prerendered by Next.js build.
 export async function getServerSideProps() {
   return { props: {} }
 }

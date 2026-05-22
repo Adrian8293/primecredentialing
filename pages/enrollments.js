@@ -34,3 +34,9 @@ export default function Enrollments() {
     </>
   )
 }
+
+// Force dynamic server rendering — this page uses auth/context and must never
+// be statically prerendered by Next.js build.
+export async function getServerSideProps() {
+  return { props: {} }
+}
