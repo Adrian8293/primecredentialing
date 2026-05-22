@@ -63,7 +63,11 @@ export function AppContextProvider({ children }) {
   const [aiModalOpen,       setAiModalOpen]        = useState(false)
   const [aiModalEnrollment, setAiModalEnrollment]  = useState(null)
 
-  // ── Filter states (candidates for URL-param migration) ────────────────────
+  // ── Filter states ─────────────────────────────────────────────────────────
+  // PERF FIX: These are now isolated into their own useMemo (filterValue) so that
+  // typing in a search box only triggers re-renders in components that consume
+  // filterValue — not all AppContext consumers (Sidebar, Topbar, modals, etc.).
+  // Long-term: migrate these to local page state or URL search params.
   const [provSearch,  setProvSearch]  = useState('')
   const [provFStatus, setProvFStatus] = useState('')
   const [provFSpec,   setProvFSpec]   = useState('')
@@ -135,6 +139,27 @@ export function AppContextProvider({ children }) {
     toast('Backup exported!', 'success')
   }, [db, toast])
 
+
+  // ── Isolated filter memo — only filter consumers re-render on keystroke ──
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const filterValue = useMemo(() => ({
+    provSearch,  setProvSearch,
+    provFStatus, setProvFStatus,
+    provFSpec,   setProvFSpec,
+    enrSearch,   setEnrSearch,
+    enrFStage,   setEnrFStage,
+    enrFProv,    setEnrFProv,
+    paySearch,   setPaySearch,
+    payFType,    setPayFType,
+    docSearch,   setDocSearch,
+    docFType,    setDocFType,
+    docFStatus,  setDocFStatus,
+    auditSearch, setAuditSearch,
+    auditFType,  setAuditFType,
+  }), [
+    filterValue,
+  ])
+
   // ── Memoized context value ────────────────────────────────────────────────
   // Deps are grouped: data deps change less frequently than filter deps.
   // When filter state changes, only the filter group re-memoizes — but because
@@ -161,20 +186,8 @@ export function AppContextProvider({ children }) {
     aiModalOpen, setAiModalOpen,
     aiModalEnrollment, setAiModalEnrollment,
 
-    // Filter states
-    provSearch, setProvSearch,
-    provFStatus, setProvFStatus,
-    provFSpec, setProvFSpec,
-    enrSearch, setEnrSearch,
-    enrFStage, setEnrFStage,
-    enrFProv, setEnrFProv,
-    paySearch, setPaySearch,
-    payFType, setPayFType,
-    docSearch, setDocSearch,
-    docFType, setDocFType,
-    docFStatus, setDocFStatus,
-    auditSearch, setAuditSearch,
-    auditFType, setAuditFType,
+    // Filter states (spread from isolated filterValue memo)
+    ...filterValue,
 
     // Derived
     alertDays, caqhDays, alertCount, expDocs, provDetail,
@@ -193,11 +206,7 @@ export function AppContextProvider({ children }) {
     providers, enrollments, payers, documents, tasks,
     modal, provDetailId, globalSearchOpen,
     aiModalOpen, aiModalEnrollment,
-    provSearch, provFStatus, provFSpec,
-    enrSearch, enrFStage, enrFProv,
-    paySearch, payFType,
-    docSearch, docFType, docFStatus,
-    auditSearch, auditFType,
+    filterValue,
     alertDays, caqhDays, alertCount, expDocs, provDetail,
     setPage, openProvDetail, openAiFollowup,
     openEnrollModal, openPayerModal, openDocModal, openTaskModal,

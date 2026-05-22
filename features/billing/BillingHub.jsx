@@ -1,83 +1,137 @@
 /**
- * BillingHub.jsx — Lacentra
- * Unified Billing tab: Claims · Eligibility · Denial Log · Revenue Analytics
- * CSV batch import for Claims and Revenue (SimplePractice compatible).
+ * BillingHub.jsx — LACentra
+ *
+ * FIX LOG:
+ *   BUG-4: db.claimDenials → db.denials  (key mismatch caused denial KPI to always show 0)
+ *   BUG-5: handleCSVImport now actually persists rows to Supabase via upsertClaim
+ *   BUG-5: parseCSV replaced with xlsx-based RFC-4180 compliant parser
+ *          (old naive split(',') broke on patient names like "Smith, John")
+ *   MISC:  Added per-tab ErrorBoundary wrappers so a crash in one sub-tab
+ *          does not white-screen the entire Billing section
  */
 
-import { useState } from 'react'
-import { ClaimsPage } from './ClaimsPage.jsx'
-import { EligibilityPage } from './EligibilityPage.jsx'
-import { DenialLog } from './DenialLog.jsx'
+import { useState, Component } from 'react'
+import { ClaimsPage }       from './ClaimsPage.jsx'
+import { EligibilityPage }  from './EligibilityPage.jsx'
+import { DenialLog }        from './DenialLog.jsx'
 import { RevenueAnalytics } from './RevenueAnalytics.jsx'
+import { upsertClaim }      from '../../lib/db.js'
+import * as XLSX            from 'xlsx'       // already a declared dependency
 
+// ── Per-tab Error Boundary ───────────────────────────────────────────────────
+// Prevents a crash in one sub-tab from white-screening the whole Billing section
+class TabErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error, info) {
+    console.error('[BillingHub TabErrorBoundary]', error, info)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          padding: '40px 24px', textAlign: 'center',
+          background: 'var(--elevated)', borderRadius: 'var(--r-lg)',
+          border: '1.5px solid var(--border)',
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <h4 style={{ color: 'var(--text-1)', marginBottom: 8 }}>This section encountered an error</h4>
+          <p style={{ color: 'var(--text-4)', fontSize: 13, marginBottom: 16 }}>
+            {this.state.error?.message || 'An unexpected error occurred.'}
+          </p>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => this.setState({ hasError: false, error: null })}
+          >
+            Try again
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+// ── Sub-tab config ───────────────────────────────────────────────────────────
 const TABS = [
   {
     id: 'claims',
     label: 'Claims',
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>,
-    desc: 'Track & manage billing claims and A/R',
   },
   {
     id: 'eligibility',
     label: 'Eligibility',
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-    desc: 'Verify patient insurance eligibility',
   },
   {
     id: 'denials',
     label: 'Denial Log',
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
-    desc: 'Log and appeal denied claims',
   },
   {
     id: 'revenue',
     label: 'Revenue Analytics',
     icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-    desc: 'Financial performance & trends',
   },
 ]
 
-// ── SimplePractice CSV Import ────────────────────────────────────────────────
+// ── SimplePractice column → internal key mapping ─────────────────────────────
 const SP_MAP = {
-  // Claims
   'Client Name': 'patient_name', 'Patient Name': 'patient_name',
-  'Service Date': 'dos', 'Date of Service': 'dos',
-  'Claim #': 'claim_num', 'Claim Number': 'claim_num',
-  'Insurance': 'payer_name', 'Payer': 'payer_name',
-  'Billed': 'billed_amount', 'Billed Amount': 'billed_amount', 'Charge': 'billed_amount',
-  'Paid': 'paid_amount', 'Amount Paid': 'paid_amount', 'Payment': 'paid_amount',
-  'Status': 'status', 'Claim Status': 'status',
-  'CPT': 'cpt_codes', 'CPT Code': 'cpt_codes', 'Procedure Code': 'cpt_codes',
-  'Provider': 'provider_name', 'Rendering Provider': 'provider_name',
-  // Revenue
-  'Amount': 'amount', 'Revenue': 'amount',
-  'Date': 'date', 'Payment Date': 'date',
-  'Type': 'payment_type', 'Payment Type': 'payment_type',
+  'Service Date': 'dos',         'Date of Service': 'dos',
+  'Claim #': 'claim_num',        'Claim Number': 'claim_num',
+  'Insurance': 'payer_name',     'Payer': 'payer_name',
+  'Billed': 'billed_amount',     'Billed Amount': 'billed_amount', 'Charge': 'billed_amount',
+  'Paid': 'paid_amount',         'Amount Paid': 'paid_amount',     'Payment': 'paid_amount',
+  'Status': 'status',            'Claim Status': 'status',
+  'CPT': 'cpt_codes',            'CPT Code': 'cpt_codes',          'Procedure Code': 'cpt_codes',
+  'Provider': 'provider_name',   'Rendering Provider': 'provider_name',
+  'Amount': 'amount',            'Revenue': 'amount',
+  'Date': 'date',                'Payment Date': 'date',
+  'Type': 'payment_type',        'Payment Type': 'payment_type',
 }
 
+/**
+ * BUG-5 FIX: Replace naive split(',') parser with xlsx RFC-4180 compliant parser.
+ * The old parser broke on any quoted field containing a comma (e.g. "Smith, John").
+ * xlsx is already declared as a project dependency — zero new packages needed.
+ */
 function parseCSV(text) {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
-  return lines.slice(1).map(line => {
-    const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-    const row = {}
-    headers.forEach((h, i) => {
-      const key = SP_MAP[h] || h.toLowerCase().replace(/\s+/g, '_')
-      row[key] = vals[i] || ''
-    })
-    return row
-  }).filter(row => Object.values(row).some(v => v))
+  try {
+    const wb   = XLSX.read(text, { type: 'string', raw: false })
+    const ws   = wb.Sheets[wb.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
+    return rows
+      .map(row => {
+        const mapped = {}
+        Object.entries(row).forEach(([h, v]) => {
+          const key    = SP_MAP[h] || h.toLowerCase().replace(/\s+/g, '_')
+          mapped[key]  = String(v || '').trim()
+        })
+        return mapped
+      })
+      .filter(row => Object.values(row).some(v => v))
+  } catch (err) {
+    console.error('[parseCSV] Failed to parse CSV:', err)
+    return []
+  }
 }
 
-function CSVImportBanner({ onImport, target }) {
+// ── CSV Import Drop Zone ─────────────────────────────────────────────────────
+function CSVImportBanner({ onImport, target, importing }) {
   const [dragging, setDragging] = useState(false)
   const [preview, setPreview]   = useState(null)
   const [rows, setRows]         = useState([])
   const [done, setDone]         = useState(false)
 
   function handleFile(file) {
-    if (!file || !file.name.endsWith('.csv')) return
+    if (!file || !file.name.toLowerCase().endsWith('.csv')) return
     const reader = new FileReader()
     reader.onload = e => {
       const parsed = parseCSV(e.target.result)
@@ -89,15 +143,13 @@ function CSVImportBanner({ onImport, target }) {
   }
 
   function handleDrop(e) {
-    e.preventDefault(); setDragging(false)
+    e.preventDefault()
+    setDragging(false)
     handleFile(e.dataTransfer.files[0])
   }
 
   function handleImport() {
-    if (onImport) onImport(rows)
-    setDone(true)
-    setPreview(null)
-    setRows([])
+    if (onImport) onImport(rows, () => { setDone(true); setPreview(null); setRows([]) })
   }
 
   if (done) return (
@@ -144,8 +196,8 @@ function CSVImportBanner({ onImport, target }) {
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => { setPreview(null); setRows([]) }}
                 style={{ fontSize: 11.5, color: 'var(--text-4)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleImport} className="btn btn-primary btn-sm">
-                Import {rows.length} Records
+              <button onClick={handleImport} className="btn btn-primary btn-sm" disabled={importing}>
+                {importing ? <><span className="spinner" />Importing…</> : `Import ${rows.length} Records`}
               </button>
             </div>
           </div>
@@ -180,26 +232,58 @@ function CSVImportBanner({ onImport, target }) {
   )
 }
 
+// ── BillingHub ───────────────────────────────────────────────────────────────
 export function BillingHub({ db, toast, requestConfirm, onDraftAppeal }) {
-  const [activeTab, setActiveTab] = useState('claims')
-  const [showImport, setShowImport] = useState(false)
+  const [activeTab,   setActiveTab]   = useState('claims')
+  const [showImport,  setShowImport]  = useState(false)
+  const [importing,   setImporting]   = useState(false)
 
-  // KPI summary across all billing data
+  // KPI data
   const claims = db.claims || []
-  const denials = db.claimDenials || []
-  const elig = db.eligibilityChecks || []
+
+  // BUG-4 FIX: was db.claimDenials — key does not exist in loadAll() output.
+  // loadAll() returns the key as `denials`. DenialLog.jsx already correctly
+  // used db.denials. This one-character fix restores the denial count KPI.
+  const denials = db.denials || []
+
+  const elig        = db.eligibilityChecks || []
   const totalBilled = claims.reduce((s, c) => s + Number(c.billed_amount || 0), 0)
-  const totalPaid   = claims.reduce((s, c) => s + Number(c.paid_amount || 0), 0)
+  const totalPaid   = claims.reduce((s, c) => s + Number(c.paid_amount   || 0), 0)
   const openClaims  = claims.filter(c => !['Paid', 'Written Off'].includes(c.status)).length
-  const denialRate  = claims.length > 0 ? ((claims.filter(c => c.status === 'Denied').length / claims.length) * 100).toFixed(1) : '0.0'
+  const denialRate  = claims.length > 0
+    ? ((claims.filter(c => c.status === 'Denied').length / claims.length) * 100).toFixed(1)
+    : '0.0'
 
   function fmtMoney(n) {
     return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  function handleCSVImport(rows) {
-    // In a real app these would be upserted to Supabase
-    toast(`Imported ${rows.length} records from CSV`, 'success')
+  /**
+   * BUG-5 FIX: handleCSVImport was a stub that discarded all data.
+   * Now persists each parsed row to Supabase via upsertClaim.
+   * Reports succeeded/failed counts in the toast.
+   */
+  async function handleCSVImport(rows, onDone) {
+    setImporting(true)
+    let succeeded = 0
+    let failed    = 0
+
+    for (const row of rows) {
+      try {
+        await upsertClaim(row)
+        succeeded++
+      } catch (e) {
+        console.warn('[CSV Import] row skipped:', e.message, row)
+        failed++
+      }
+    }
+
+    setImporting(false)
+    toast(
+      `Imported ${succeeded} record${succeeded !== 1 ? 's' : ''}${failed ? ` (${failed} skipped — check console)` : ''}.`,
+      failed > 0 ? 'warn' : 'success'
+    )
+    if (onDone) onDone()
   }
 
   return (
@@ -241,6 +325,7 @@ export function BillingHub({ db, toast, requestConfirm, onDraftAppeal }) {
         <div className="kpi kpi-red">
           <div className="kpi-label">Denial Rate</div>
           <div className="kpi-value" style={{ fontSize: 22 }}>{denialRate}%</div>
+          {/* BUG-4 FIX: now shows actual denial count instead of always 0 */}
           <div className="kpi-sub">{denials.length} logged denials</div>
         </div>
         <div className="kpi">
@@ -254,9 +339,13 @@ export function BillingHub({ db, toast, requestConfirm, onDraftAppeal }) {
       {showImport && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ background: 'var(--pr-l)', border: '1.5px solid rgba(21,101,192,.2)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#1e40af', fontWeight: 500, marginBottom: 10 }}>
-            ℹ Import from SimplePractice: Reports → Billing → Export CSV. Works for Claims and Revenue exports.
+            ℹ Import from SimplePractice: Reports → Billing → Export CSV. Supports Claims and Revenue exports.
           </div>
-          <CSVImportBanner onImport={handleCSVImport} target={activeTab === 'revenue' ? 'Revenue Analytics' : 'Claims'} />
+          <CSVImportBanner
+            onImport={handleCSVImport}
+            target={activeTab === 'revenue' ? 'Revenue Analytics' : 'Claims'}
+            importing={importing}
+          />
         </div>
       )}
 
@@ -280,11 +369,27 @@ export function BillingHub({ db, toast, requestConfirm, onDraftAppeal }) {
         ))}
       </div>
 
-      {/* Sub-tab content */}
-      {activeTab === 'claims'      && <ClaimsPage db={db} toast={toast} requestConfirm={requestConfirm} />}
-      {activeTab === 'eligibility' && <EligibilityPage db={db} toast={toast} requestConfirm={requestConfirm} />}
-      {activeTab === 'denials'     && <DenialLog db={db} toast={toast} onDraftAppeal={onDraftAppeal} requestConfirm={requestConfirm} />}
-      {activeTab === 'revenue'     && <RevenueAnalytics db={db} />}
+      {/* Sub-tab content — each wrapped in its own ErrorBoundary */}
+      {activeTab === 'claims' && (
+        <TabErrorBoundary>
+          <ClaimsPage db={db} toast={toast} requestConfirm={requestConfirm} />
+        </TabErrorBoundary>
+      )}
+      {activeTab === 'eligibility' && (
+        <TabErrorBoundary>
+          <EligibilityPage db={db} toast={toast} requestConfirm={requestConfirm} />
+        </TabErrorBoundary>
+      )}
+      {activeTab === 'denials' && (
+        <TabErrorBoundary>
+          <DenialLog db={db} toast={toast} onDraftAppeal={onDraftAppeal} requestConfirm={requestConfirm} />
+        </TabErrorBoundary>
+      )}
+      {activeTab === 'revenue' && (
+        <TabErrorBoundary>
+          <RevenueAnalytics db={db} />
+        </TabErrorBoundary>
+      )}
     </div>
   )
 }

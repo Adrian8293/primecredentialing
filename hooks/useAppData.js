@@ -3,28 +3,30 @@ import { supabase } from '../lib/supabase'
 import { loadAll, subscribeToAll, mergeRealtimeChange } from '../lib/db'
 
 /**
- * Manages the entire application data state.
- * Owns the initial loadAll() fetch and the realtime subscription.
- * All feature hooks receive db + setDb from here.
+ * useAppData.js — LACentra
+ *
+ * FIX LOG:
+ *   BUG-6: Added a 10-second failsafe timeout to loadAll().
+ *          Previously, if any of the 11 parallel Supabase queries was slow or
+ *          failed silently, the global spinner showed indefinitely.
+ *          Now: the UI unblocks after 10s with a warning toast, so staff
+ *          can at least navigate even on degraded connections.
+ *
+ *   A-03 (existing): orgId resolved from organization_members, not user.id.
+ *   D-03 (existing): subscribeToAll receives orgId for proper channel filtering.
  */
 export function useAppData(user, toast) {
   const [db, setDb] = useState({
     providers: [], payers: [], enrollments: [], documents: [],
     tasks: [], auditLog: [], settings: {},
     eligibilityChecks: [], claims: [], denials: [], payments: [],
-    // A-01/A-02: Track truncation state so the UI can render a persistent warning banner.
     providersMeta: { truncated: false, total: 0 },
   })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]           = useState(true)
   const [settingsForm, setSettingsForm] = useState({})
+  const [orgId, setOrgId]               = useState(null)
 
-  // A-03 FIX: Resolve the organization UUID at login time from organization_members.
-  // Previously, user.id (auth UUID) was passed as orgId to subscribeToAll(), causing
-  // the realtime filter `org_id=eq.{user.id}` to never match any row because org_id
-  // columns store organization UUIDs, not user UUIDs. All realtime events were silently
-  // dropped as a result.
-  const [orgId, setOrgId] = useState(null)
-
+  // Resolve the org UUID from organization_members (not user.id)
   useEffect(() => {
     if (!user) return
     supabase
@@ -35,39 +37,55 @@ export function useAppData(user, toast) {
       .single()
       .then(({ data, error }) => {
         if (error) {
-          // Non-fatal: org_id may not be backfilled yet (pre S-01 activation).
-          // Realtime subscriptions will run without an org filter until then.
-          console.warn('[useAppData] Could not resolve orgId from organization_members:', error.message)
+          console.warn('[useAppData] Could not resolve orgId:', error.message)
           return
         }
         if (data?.org_id) setOrgId(data.org_id)
       })
   }, [user])
 
-  // Initial load
+  // Initial data load with 10-second failsafe timeout
   useEffect(() => {
     if (!user) return
     setLoading(true)
+
+    // BUG-6 FIX: If loadAll() takes > 10s, unblock the UI with a warning.
+    // This covers: slow Supabase cold-starts, transient network issues,
+    // or a single query hanging and blocking all 11.
+    const timeout = setTimeout(() => {
+      console.warn('[useAppData] loadAll() exceeded 10s — unblocking UI')
+      toast(
+        'Data is taking longer than usual to load. Some information may be incomplete — try refreshing.',
+        'warn'
+      )
+      setLoading(false)
+    }, 10_000)
+
     loadAll()
       .then(data => {
+        clearTimeout(timeout)
         setDb(data)
         setSettingsForm(data.settings)
         setLoading(false)
       })
       .catch(err => {
+        clearTimeout(timeout)
         toast('Error loading data: ' + err.message, 'error')
         setLoading(false)
       })
+
+    return () => clearTimeout(timeout)
   }, [user])
 
-  // Realtime subscription — org-scoped once orgId is resolved (post S-01 activation).
-  // A-03 FIX: Pass the resolved org UUID, not user.id.
-  // D-03 FIX: claim_denials and payments channels now include orgFilter in db.js.
+  // Realtime subscription — org-scoped once orgId resolves
   useEffect(() => {
     if (!user) return
-    const unsub = subscribeToAll((stateKey, mappedRow, eventType, oldId) => {
-      setDb(prev => mergeRealtimeChange(prev, stateKey, mappedRow, eventType, oldId))
-    }, orgId)   // orgId is null until resolved — subscribeToAll handles null gracefully
+    const unsub = subscribeToAll(
+      (stateKey, mappedRow, eventType, oldId) => {
+        setDb(prev => mergeRealtimeChange(prev, stateKey, mappedRow, eventType, oldId))
+      },
+      orgId   // null until resolved — subscribeToAll handles null gracefully
+    )
     return unsub
   }, [user, orgId])
 

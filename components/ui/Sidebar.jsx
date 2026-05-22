@@ -31,7 +31,7 @@ const I = {
 const ROUTE_MAP = {
   '/':            'dashboard',
   '/providers':   'providers',
-  '/enrollments': 'applications',
+  '/enrollments': 'enrollments',
   '/payers':      'payers',
   '/documents':   'documents',
   '/tasks':       'tasks',
@@ -144,7 +144,7 @@ export function Sidebar({ page, setPage, alertCount, expDocs, user, signOut, db 
       <div className="sb-nav" role="menu">
         {navItem('dashboard',    'Dashboard',    I.dashboard)}
         {navItem('providers',    'Providers',    I.providers)}
-        {navItem('applications', 'Applications', I.applications)}
+        {navItem('enrollments',    'Applications', I.applications)}
         {navItem('payers',       'Payers',       I.payers)}
         {navItem('documents',    'Documents',    I.documents, expDocs, false)}
         {navItem('tasks',        'Tasks',        I.tasks,     taskCount, overdueTaskCount > 0)}
