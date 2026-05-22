@@ -16,7 +16,7 @@ import { EligibilityPage }  from './EligibilityPage.jsx'
 import { DenialLog }        from './DenialLog.jsx'
 import { RevenueAnalytics } from './RevenueAnalytics.jsx'
 import { upsertClaim }      from '../../lib/db.js'
-import * as XLSX            from 'xlsx'       // already a declared dependency
+// xlsx imported dynamically inside parseCSV() to keep it out of the SSR bundle
 
 // ── Per-tab Error Boundary ───────────────────────────────────────────────────
 // Prevents a crash in one sub-tab from white-screening the whole Billing section
@@ -100,10 +100,12 @@ const SP_MAP = {
 /**
  * BUG-5 FIX: Replace naive split(',') parser with xlsx RFC-4180 compliant parser.
  * The old parser broke on any quoted field containing a comma (e.g. "Smith, John").
- * xlsx is already declared as a project dependency — zero new packages needed.
+ * xlsx is dynamically imported (not at module top-level) so it stays out of the
+ * Turbopack SSR bundle and avoids module-eval TDZ issues during next build.
  */
-function parseCSV(text) {
+async function parseCSV(text) {
   try {
+    const XLSX = (await import('xlsx')).default || await import('xlsx')
     const wb   = XLSX.read(text, { type: 'string', raw: false })
     const ws   = wb.Sheets[wb.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
@@ -133,8 +135,8 @@ function CSVImportBanner({ onImport, target, importing }) {
   function handleFile(file) {
     if (!file || !file.name.toLowerCase().endsWith('.csv')) return
     const reader = new FileReader()
-    reader.onload = e => {
-      const parsed = parseCSV(e.target.result)
+    reader.onload = async e => {
+      const parsed = await parseCSV(e.target.result)
       setRows(parsed)
       setPreview(parsed.slice(0, 3))
       setDone(false)

@@ -1,3 +1,11 @@
+/**
+ * hooks/useAuth.js
+ *
+ * FIX: All supabase calls are inside useEffect, which only runs in the browser.
+ * Added explicit typeof window guards to prevent any accidental SSR execution.
+ * The supabase Proxy already guards at the property-access level, but belt-and-
+ * suspenders here ensures useAuth is safe even if called during SSR prerender.
+ */
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -6,8 +14,12 @@ function useAuth() {
   const [authLoading, setAuthLoading] = useState(true)
 
   useEffect(() => {
-    // First read the session from localStorage (instant, no network call).
-    // This prevents the flash-redirect to /login on page load.
+    // useEffect only runs in the browser — supabase calls are safe here.
+    // The typeof window check is belt-and-suspenders for SSR safety.
+    if (typeof window === 'undefined') return
+
+    // Read session from local JWT first (instant, no network call).
+    // Prevents the flash-redirect to /login on page load.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user)
@@ -27,7 +39,6 @@ function useAuth() {
     // Listen for sign-in / sign-out events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      // If a new session arrives (e.g. after magic link), stop loading
       if (session !== undefined) setAuthLoading(false)
     })
 
@@ -35,9 +46,10 @@ function useAuth() {
   }, [])
 
   async function signOut() {
+    if (typeof window === 'undefined') return
     await supabase.auth.signOut()
     setUser(null)
-    if (typeof window !== 'undefined') window.location.href = '/login'
+    window.location.href = '/login'
   }
 
   return { user, authLoading, signOut }

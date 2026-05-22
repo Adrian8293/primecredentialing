@@ -7,11 +7,14 @@ import { AppContextProvider } from '../context/AppContext'
 import { Layout } from '../components/Layout'
 
 // ── Env validation (dev only) ────────────────────────────────────────────────
+// NOTE: Never throw at module scope — it crashes the Next.js SSR build worker
+// during static prerendering of /404 and /_error (which always go through _app.js).
+// Use console.warn instead so missing vars surface in logs without killing the build.
 if (typeof window === 'undefined' && process.env.NODE_ENV === 'development') {
   const required = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY']
   const missing = required.filter(k => !process.env[k])
   if (missing.length) {
-    throw new Error(
+    console.warn(
       `[Lacentra] Missing required environment variables:\n${missing.map(k => `  • ${k}`).join('\n')}\n\nCopy .env.example → .env.local and fill in your Supabase credentials.`
     )
   }
