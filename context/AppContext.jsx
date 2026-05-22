@@ -141,7 +141,16 @@ export function AppContextProvider({ children }) {
 
 
   // ── Isolated filter memo — only filter consumers re-render on keystroke ──
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // FIX (BUG-TDZ): The previous dependency array was [filterValue] — a
+  // self-referential reference to the variable being defined. Turbopack
+  // minifies `filterValue` to a short identifier (e.g. `aI`) and the compiled
+  // code attempted to read `aI` before it was initialized, producing:
+  //   "ReferenceError: Cannot access 'aI' before initialization"
+  // This crashed static prerendering of /404 and killed every Vercel build.
+  //
+  // FIX: Use the actual state values as dependencies. useState setter functions
+  // (setProvSearch, etc.) are guaranteed stable by React and never need to be
+  // listed. The eslint-disable comment that was hiding this bug is removed.
   const filterValue = useMemo(() => ({
     provSearch,  setProvSearch,
     provFStatus, setProvFStatus,
@@ -157,7 +166,11 @@ export function AppContextProvider({ children }) {
     auditSearch, setAuditSearch,
     auditFType,  setAuditFType,
   }), [
-    filterValue,
+    provSearch, provFStatus, provFSpec,
+    enrSearch,  enrFStage,   enrFProv,
+    paySearch,  payFType,
+    docSearch,  docFType,    docFStatus,
+    auditSearch, auditFType,
   ])
 
   // ── Memoized context value ────────────────────────────────────────────────
