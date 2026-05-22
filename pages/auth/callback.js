@@ -46,6 +46,9 @@ export default function AuthCallback() {
  * Force dynamic rendering — this page must never be statically prerendered.
  * It relies on URL fragments and browser auth state that only exist at runtime.
  */
-export async function getServerSideProps() {
-  return { props: {} }
-}
+
+// Static page — no getServerSideProps needed.
+// Auth is enforced client-side: Layout.jsx redirects unauthenticated
+// users to /login via useAuth. Removing getServerSideProps eliminates
+// the server round-trip that was causing tab-switch delays (every navigation
+// previously waited for a /_next/data fetch before rendering).

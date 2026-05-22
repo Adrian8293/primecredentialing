@@ -240,8 +240,8 @@ input{font-family:inherit;}
 .pc-trust-sep{width:3px;height:3px;border-radius:50%;background:#1E2D4A;}
 `
 
-// Force dynamic server rendering — this page uses auth/context and must never
-// be statically prerendered by Next.js build.
-export async function getServerSideProps() {
-  return { props: {} }
-}
+// Static page — no getServerSideProps needed.
+// Auth is enforced client-side: Layout.jsx redirects unauthenticated
+// users to /login via useAuth. Removing getServerSideProps eliminates
+// the server round-trip that was causing tab-switch delays (every navigation
+// previously waited for a /_next/data fetch before rendering).

@@ -21,8 +21,8 @@ export default function Settings() {
   )
 }
 
-// Force dynamic server rendering — this page uses auth/context and must never
-// be statically prerendered by Next.js build.
-export async function getServerSideProps() {
-  return { props: {} }
-}
+// Static page — no getServerSideProps needed.
+// Auth is enforced client-side: Layout.jsx redirects unauthenticated
+// users to /login via useAuth. Removing getServerSideProps eliminates
+// the server round-trip that was causing tab-switch delays (every navigation
+// previously waited for a /_next/data fetch before rendering).
