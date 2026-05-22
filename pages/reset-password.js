@@ -239,3 +239,8 @@ input{font-family:inherit;}
 .pc-trust-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#334155;}
 .pc-trust-sep{width:3px;height:3px;border-radius:50%;background:#1E2D4A;}
 `
+
+// FIX: Prevent static prerendering — password reset page depends on URL tokens at runtime
+export async function getServerSideProps() {
+  return { props: {} }
+}

@@ -5,8 +5,7 @@ const nextConfig = {
   /**
    * FIX (BUG-2): Belt-and-suspenders redirect for /applications → /enrollments.
    * Primary fix is the Sidebar nav key change ('applications' → 'enrollments').
-   * This redirect catches any hardcoded /applications links elsewhere in the app
-   * or external links users may have bookmarked.
+   * This catches any hardcoded /applications links or user bookmarks.
    */
   async redirects() {
     return [
@@ -19,10 +18,11 @@ const nextConfig = {
   },
 
   images: {
-    domains: [
-      't1.gstatic.com',
-      'logo.clearbit.com',
-      'icons.duckduckgo.com',
+    // FIX: Migrated from deprecated `domains` to `remotePatterns` (Next.js 13+)
+    remotePatterns: [
+      { protocol: 'https', hostname: 't1.gstatic.com'    },
+      { protocol: 'https', hostname: 'logo.clearbit.com' },
+      { protocol: 'https', hostname: 'icons.duckduckgo.com' },
     ],
   },
 }

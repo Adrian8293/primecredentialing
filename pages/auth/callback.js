@@ -4,6 +4,12 @@
  * Catches Supabase magic link and OAuth redirects.
  * Supabase appends #access_token=... to the Site URL after auth.
  * This page reads that token, establishes the session, then redirects home.
+ *
+ * FIX: Added getServerSideProps to prevent static prerendering.
+ * Without it, Next.js (Turbopack) attempted to statically generate this page
+ * during `next build`, which caused "Cannot access 'aI' before initialization"
+ * because window/auth state is unavailable in the SSR prerender worker.
+ * Auth pages must always be server-rendered (or client-only) — never static.
  */
 import { useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
@@ -34,4 +40,12 @@ export default function AuthCallback() {
       Signing you in…
     </div>
   )
+}
+
+/**
+ * Force dynamic rendering — this page must never be statically prerendered.
+ * It relies on URL fragments and browser auth state that only exist at runtime.
+ */
+export async function getServerSideProps() {
+  return { props: {} }
 }

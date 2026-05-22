@@ -528,3 +528,8 @@ input{font-family:inherit;}
   .pc-row2{grid-template-columns:1fr;}
 }
 `
+
+// FIX: Prevent static prerendering — login page depends on runtime auth state
+export async function getServerSideProps() {
+  return { props: {} }
+}
